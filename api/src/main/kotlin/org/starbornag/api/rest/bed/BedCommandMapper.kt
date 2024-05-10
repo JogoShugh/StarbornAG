@@ -1,7 +1,6 @@
 package org.starbornag.api.rest.bed
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import org.starbornag.api.domain.bed.BedCommand
 import org.starbornag.api.domain.bed.BedCommand.FertilizeBedCommand

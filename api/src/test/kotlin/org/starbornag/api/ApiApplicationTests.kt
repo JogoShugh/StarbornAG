@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.jayway.jsonpath.internal.JsonFormatter.prettyPrint
 import org.assertj.core.api.AssertionsForInterfaceTypes.assertThat
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
@@ -12,10 +11,12 @@ import org.springframework.context.annotation.Import
 import org.springframework.restdocs.webtestclient.WebTestClientRestDocumentation.document
 import org.springframework.test.context.TestConstructor
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.starbornag.api.rest.bed.BedCommandMapper
 import org.starbornag.api.domain.bed.BedCommand.*
 import org.starbornag.api.rest.bed.BedCommandHandler
-import org.starbornag.api.rest.bed.BedResource
+import org.starbornag.api.rest.bed.BedCommandMapper
+import org.starbornag.api.rest.bed.BedHistoryQueryHandler
+import org.starbornag.api.rest.bed.BedResourceWithCurrentState
+import org.starbornag.api.rest.bed.BedResourceWithHistory
 import org.starbornag.api.rest.bed.PrepareBedCommandHandler
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -23,10 +24,8 @@ import java.util.*
 
 @WebFluxTest(controllers = [
 	PrepareBedCommandHandler::class,
-	BedCommandHandler::class
-//	PlantSeedlingInBedCommandHandler::class,
-//	WaterBedCommandHandler::class,
-//	FertilizeBedCommandHandler::class
+	BedCommandHandler::class,
+	BedHistoryQueryHandler::class
 ])
 @Import(BedCommandMapper::class)
 @AutoConfigureRestDocs("build/generated-snippets")
@@ -53,11 +52,11 @@ class ApiApplicationTests(
 			.bodyValue(command)
 			.exchange()
 			.expectStatus().isCreated()
-			.expectBody(BedResource::class.java)
+			.expectBody(BedResourceWithCurrentState::class.java)
 			.consumeWith(document("prepare-bed"))
 			.value {
-				print(prettyPrint(objectMapper.writeValueAsString(it)))
-				val resource = it as BedResource
+				printResponse(it)
+				val resource = it as BedResourceWithCurrentState
 				bedUuid = resource.id
 				assertThat(resource.rows.count()).isEqualTo(rowCount)
 				assertThat(resource.rows.all {
@@ -81,11 +80,10 @@ class ApiApplicationTests(
 					.bodyValue(plantSeedlingCommand)
 					.exchange()
 					.expectStatus().isOk
-					.expectBody(BedResource::class.java)
+					.expectBody(BedResourceWithCurrentState::class.java)
 					.consumeWith(document("plant-seedling"))
 					.value {
-						print(prettyPrint(objectMapper.writeValueAsString(it)))
-						val resource = it as BedResource
+						printResponse(it)
 					}
 
 				val startedTimes = mapOf(
@@ -106,12 +104,9 @@ class ApiApplicationTests(
 						)
 						.exchange()
 						.expectStatus().isOk()
-						.expectBody(BedResource::class.java)
+						.expectBody(BedResourceWithCurrentState::class.java)
 						.consumeWith(document("water-bed"))
-						.value {
-							print(prettyPrint(objectMapper.writeValueAsString(it)))
-							val resource = it as BedResource
-						}
+						.value { printResponse(it) }
 				}
 
 				webTestClient.post()
@@ -126,14 +121,27 @@ class ApiApplicationTests(
 					)
 					.exchange()
 					.expectStatus().isOk()
-					.expectBody(BedResource::class.java)
+					.expectBody(BedResourceWithCurrentState::class.java)
 					.consumeWith(document("fertilize-bed"))
 					.value {
-						print(prettyPrint(objectMapper.writeValueAsString(it)))
-						val resource = it as BedResource
+						printResponse(it)
+					}
+
+				webTestClient.get()
+					.uri("/api/beds/$bedUuid/history")
+					.exchange()
+					.expectStatus().isOk()
+					.expectBody(BedResourceWithHistory::class.java)
+					.consumeWith(document("history"))
+					.value {
+						printResponse(it)
 					}
 
 			}
+	}
+
+	private fun printResponse(it: Any?) {
+		print(prettyPrint(objectMapper.writeValueAsString(it)))
 	}
 
 }

@@ -73,65 +73,35 @@ class ApiApplicationTests(
 				})
 				assertThat(resource.name).isEqualTo("Earth")
 
-				val plantSeedlingCommand = PlantSeedlingInBedCommand(
+				postCommand(plantLink, "plant-seedling",
+					PlantSeedlingInBedCommand(
 					bedUuid,
 					1,
 					1,
 					"Tomato",
 					"Dark Galaxy"
+					)
 				)
 
-				webTestClient.post()
-					.uri(plantLink)
-					.bodyValue(plantSeedlingCommand)
-					.exchange()
-					.expectStatus().isOk
-					.expectBody(BedResourceWithCurrentState::class.java)
-					.consumeWith(document("plant-seedling"))
-					.value {
-						printResponse(it)
-					}
-
-				val startedTimes = mapOf(
+				mapOf(
 					1 to Date.from(Instant.now().minusSeconds(30L)),
 					2 to Date.from(Instant.now().minus(2L, ChronoUnit.DAYS)),
-					3 to Date.from(Instant.now().minus(300L, ChronoUnit.HOURS)),
-
+					3 to Date.from(Instant.now().minus(300L, ChronoUnit.HOURS))).forEach {
+					val command = WaterBedCommand(
+						bedUuid,
+						it.value,
+						2.0
 					)
-				for (i in 1 .. 3) {
-					webTestClient.post()
-						.uri(waterLink)
-						.bodyValue(
-							WaterBedCommand(
-								bedUuid,
-								startedTimes[i]!!,
-								2.0
-							)
-						)
-						.exchange()
-						.expectStatus().isOk()
-						.expectBody(BedResourceWithCurrentState::class.java)
-						.consumeWith(document("water-bed"))
-						.value { printResponse(it) }
+					postCommand(waterLink, "water-bed", command)
 				}
 
-				webTestClient.post()
-					.uri(fertilizeLink)
-					.bodyValue(
-						FertilizeBedCommand(
-							bedUuid,
-							Date.from(Instant.now().minus(2L, ChronoUnit.HOURS)),
-							1.0,
-							"Vegan Mix 3-2-2"
-						)
+				postCommand(fertilizeLink, "fertilize-bed", FertilizeBedCommand(
+					bedUuid,
+					Date.from(Instant.now().minus(2L, ChronoUnit.HOURS)),
+					1.0,
+					"Vegan Mix 3-2-2"
 					)
-					.exchange()
-					.expectStatus().isOk()
-					.expectBody(BedResourceWithCurrentState::class.java)
-					.consumeWith(document("fertilize-bed"))
-					.value {
-						printResponse(it)
-					}
+				)
 
 				webTestClient.get()
 					.uri(historyLink)
@@ -142,7 +112,19 @@ class ApiApplicationTests(
 					.value {
 						printResponse(it)
 					}
+			}
+	}
 
+	private fun postCommand(fertilizeLink: URI, exampleName: String, command: BedCommand) {
+		webTestClient.post()
+			.uri(fertilizeLink)
+			.bodyValue(command)
+			.exchange()
+			.expectStatus().isOk()
+			.expectBody(BedResourceWithCurrentState::class.java)
+			.consumeWith(document("fertilize-bed"))
+			.value {
+				printResponse(it)
 			}
 	}
 

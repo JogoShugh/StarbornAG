@@ -1,5 +1,6 @@
 package org.starbornag.api.rest.bed
 
+import org.starbornag.api.domain.bed.BedAggregate
 import java.util.*
 
 object BedRepository {

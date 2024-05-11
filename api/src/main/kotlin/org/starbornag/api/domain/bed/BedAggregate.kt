@@ -1,6 +1,9 @@
-package org.starbornag.api.rest.bed
+package org.starbornag.api.domain.bed
 
-import org.starbornag.api.domain.bed.BedCommand
+import org.starbornag.api.rest.bed.BedEvent
+import org.starbornag.api.rest.bed.BedFertilized
+import org.starbornag.api.rest.bed.BedWatered
+import org.starbornag.api.rest.bed.Row
 import java.util.*
 
 class BedAggregate(

@@ -18,6 +18,7 @@ import org.starbornag.api.rest.bed.BedHistoryQueryHandler
 import org.starbornag.api.rest.bed.BedResourceWithCurrentState
 import org.starbornag.api.rest.bed.BedResourceWithHistory
 import org.starbornag.api.rest.bed.PrepareBedCommandHandler
+import java.net.URI
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
@@ -57,6 +58,11 @@ class ApiApplicationTests(
 			.value {
 				printResponse(it)
 				val resource = it as BedResourceWithCurrentState
+				val plantLink = resource.link("plant")
+				val waterLink = resource.link("water")
+				val fertilizeLink = resource.link("fertilize")
+				val historyLink = resource.link("history")
+
 				bedUuid = resource.id
 				assertThat(resource.rows.count()).isEqualTo(rowCount)
 				assertThat(resource.rows.all {
@@ -76,7 +82,7 @@ class ApiApplicationTests(
 				)
 
 				webTestClient.post()
-					.uri("/api/beds/$bedUuid/plant")
+					.uri(plantLink)
 					.bodyValue(plantSeedlingCommand)
 					.exchange()
 					.expectStatus().isOk
@@ -94,7 +100,7 @@ class ApiApplicationTests(
 					)
 				for (i in 1 .. 3) {
 					webTestClient.post()
-						.uri("/api/beds/$bedUuid/water")
+						.uri(waterLink)
 						.bodyValue(
 							WaterBedCommand(
 								bedUuid,
@@ -110,7 +116,7 @@ class ApiApplicationTests(
 				}
 
 				webTestClient.post()
-					.uri("/api/beds/$bedUuid/fertilize")
+					.uri(fertilizeLink)
 					.bodyValue(
 						FertilizeBedCommand(
 							bedUuid,
@@ -128,7 +134,7 @@ class ApiApplicationTests(
 					}
 
 				webTestClient.get()
-					.uri("/api/beds/$bedUuid/history")
+					.uri(historyLink)
 					.exchange()
 					.expectStatus().isOk()
 					.expectBody(BedResourceWithHistory::class.java)
@@ -145,3 +151,6 @@ class ApiApplicationTests(
 	}
 
 }
+
+private fun BedResourceWithCurrentState.link(linkRel: String) : URI =
+	this.getLink(linkRel).get().toUri()

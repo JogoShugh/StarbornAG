@@ -13,6 +13,7 @@ open class BedResource<T>(val id: UUID) : RepresentationModel<BedResource<T>>() 
                 Link.of("/api/beds/${id}/plant").withRel("plant"),
                 Link.of("/api/beds/${id}/water").withRel("water"),
                 Link.of("/api/beds/${id}/fertilize").withRel("fertilize"),
+                Link.of("/api/beds/${id}/harvest").withRel("harvest"),
                 Link.of("/api/beds/${id}/history").withRel("history")
             )
         )

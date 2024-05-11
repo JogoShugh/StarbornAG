@@ -1,4 +1,4 @@
-package org.starbornag.api.rest.bed
+package org.starbornag.api.domain.bed
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.annotation.JsonTypeName
@@ -59,4 +59,13 @@ class BedMulched(
     started: Date,
     val volume: Double,
     val material: String
+) : BedEvent(started)
+
+@JsonTypeName("bedHarvested")
+class BedHarvested(
+    started: Date,
+    val plantType: String,
+    val plantCultivar: String,
+    val quantity: Int? = null,
+    val weight: Double? = null
 ) : BedEvent(started)

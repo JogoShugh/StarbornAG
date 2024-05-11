@@ -15,7 +15,8 @@ class BedCommandMapper(
         private val pathToCommandTypeMap = mapOf(
             "plant" to PlantSeedlingInBedCommand::class,
             "fertilize" to FertilizeBedCommand::class,
-            "water" to WaterBedCommand::class
+            "water" to WaterBedCommand::class,
+            "harvest" to BedCommand.HarvestBedCommand::class
         )
     }
 

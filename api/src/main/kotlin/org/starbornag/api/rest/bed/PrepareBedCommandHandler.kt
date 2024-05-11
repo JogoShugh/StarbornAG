@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import org.starbornag.api.domain.bed.BedAggregate
 import org.starbornag.api.domain.bed.BedCommand.*
+import org.starbornag.api.domain.bed.BedRepository
 import reactor.core.publisher.Mono
 import java.net.URI
 import java.util.*

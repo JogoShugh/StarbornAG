@@ -1,9 +1,6 @@
 package org.starbornag.api.domain.bed
 
-import org.starbornag.api.rest.bed.BedEvent
-import org.starbornag.api.rest.bed.BedFertilized
-import org.starbornag.api.rest.bed.BedWatered
-import org.starbornag.api.rest.bed.Row
+import org.starbornag.api.domain.bed.BedCommand.*
 import java.util.*
 
 class BedAggregate(
@@ -31,18 +28,22 @@ class BedAggregate(
     val fertilizations: List<BedFertilized>
         get() = events.filterIsInstance<BedFertilized>()
 
+    val harvests: List<BedHarvested>
+        get() = events.filterIsInstance<BedHarvested>()
+
     // Generic command handler dispatcher
     fun <T : BedCommand> execute(command: T) {
         when (command) {
-            is BedCommand.PlantSeedlingInBedCommand -> execute(command)
-            is BedCommand.WaterBedCommand -> execute(command)
-            is BedCommand.FertilizeBedCommand -> execute(command)
+            is PlantSeedlingInBedCommand -> execute(command)
+            is WaterBedCommand -> execute(command)
+            is FertilizeBedCommand -> execute(command)
+            is HarvestBedCommand -> execute(command)
             else -> throw IllegalArgumentException("Unsupported command type")
         }
     }
 
     // Concrete command handlers
-    private fun execute(command: BedCommand.PlantSeedlingInBedCommand) {
+    private fun execute(command: PlantSeedlingInBedCommand) {
         // Adjust to be 1 based:
         val rowPosition = command.rowPosition - 1
         val cellPositionInRow = command.cellPositionInRow - 1
@@ -50,13 +51,24 @@ class BedAggregate(
         cells[cellPositionInRow] = "${command.plantType} - ${command.plantCultivar}"
     }
 
-    private fun execute(command: BedCommand.WaterBedCommand) {
+    private fun execute(command: WaterBedCommand) {
         val wateredEvent = BedWatered(command.started, command.volume)
         events.add(wateredEvent)
     }
 
-    private fun execute(command: BedCommand.FertilizeBedCommand) {
+    private fun execute(command: FertilizeBedCommand) {
         val fertilizedEvent = BedFertilized(command.started, command.volume, command.fertilizer)
         events.add(fertilizedEvent)
+    }
+
+    private fun execute(command: HarvestBedCommand) {
+        val harvestedFromBedEvent = BedHarvested(
+            command.started,
+            command.plantType,
+            command.plantCultivar,
+            command.quantity,
+            command.weight
+        )
+        events.add(harvestedFromBedEvent)
     }
 }

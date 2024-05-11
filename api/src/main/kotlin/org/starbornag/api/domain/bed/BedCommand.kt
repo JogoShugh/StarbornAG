@@ -29,4 +29,13 @@ sealed class BedCommand() : BedId {
         val started: Date,
         val volume: Double
     ) : BedCommand()
+
+    data class HarvestBedCommand(
+        override val bedId: UUID,
+        val started: Date,
+        val plantType: String,
+        val plantCultivar: String,
+        val quantity: Int? = null,
+        val weight: Double? = null
+    ) : BedCommand()
 }

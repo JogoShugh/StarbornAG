@@ -65,6 +65,7 @@ class ApiApplicationTests(
             val plantLink = resource.link("plant")
             val waterLink = resource.link("water")
             val fertilizeLink = resource.link("fertilize")
+            val harvestLink = resource.link("harvest")
             val historyLink = resource.link("history")
 
             bedUuid = resource.id
@@ -86,6 +87,18 @@ class ApiApplicationTests(
                     1,
                     "Tomato",
                     "Dark Galaxy"
+                )
+            )
+
+            postCommand<BedResourceWithCurrentState>(
+                plantLink,
+                "plant-seedling",
+                PlantSeedlingInBedCommand(
+                    bedUuid,
+                    1,
+                    2,
+                    "Basil",
+                    "Thai Basil"
                 )
             )
 
@@ -117,6 +130,30 @@ class ApiApplicationTests(
                 )
             )
 
+            postCommand<BedResourceWithCurrentState>(
+                harvestLink,
+                "harvest-bed",
+                HarvestBedCommand(
+                    bedUuid,
+                    Date.from(Instant.now().minus(1L, ChronoUnit.HOURS)),
+                    "Tomato",
+                    "Dark Galaxy",
+                    quantity = 3
+                )
+            )
+
+            postCommand<BedResourceWithCurrentState>(
+                harvestLink,
+                "harvest-bed",
+                HarvestBedCommand(
+                    bedUuid,
+                    Date.from(Instant.now().minus(1L, ChronoUnit.HOURS)),
+                    "Basil",
+                    "Thai Basil",
+                    weight = 0.2
+                )
+            )
+
             getQuery<BedResourceWithHistory>(
                 historyLink,
                 "get-history"
@@ -127,7 +164,7 @@ class ApiApplicationTests(
 
     private inline fun <reified T> getQuery(
         link: URI, exampleName: String,
-        noinline valueConsumer: (Any) -> Unit = {
+        noinline valueConsumer: (Any?) -> Unit = {
             printResponse(it)
         }
     ) =
@@ -154,7 +191,9 @@ class ApiApplicationTests(
     ) {
         webTestClient.method(method)
             .uri(link).let {
-                if (payload != null) it.bodyValue(payload)
+                when {
+                    payload != null -> it.bodyValue(payload)
+                }
                 return@let it
             }
             .exchange()

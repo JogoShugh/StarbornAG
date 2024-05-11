@@ -8,6 +8,9 @@ import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDoc
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
+import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
+import org.springframework.http.HttpStatusCode
 import org.springframework.restdocs.webtestclient.WebTestClientRestDocumentation.document
 import org.springframework.test.context.TestConstructor
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -39,93 +42,116 @@ class ApiApplicationTests(
 	private var bedUuid : UUID = UUID.randomUUID()
 
 	@Test
-	fun `PrepareBedCommand for 8 by 4 bed returns BedResource with 32 empty cells and 8 columns and 4 rows`() {
+	fun `Create bed of 8 feet by 4 feet and plant, water, and fertilize it`() {
 		val rowCount = 4
 		val cellPerRowCount = 8
-		val command = PrepareBedCommand(
+		val prepareBedCommand = PrepareBedCommand(
 			UUID.randomUUID(),
 			"Earth",
 			Dimensions(cellPerRowCount, rowCount)
 		)
 
-		webTestClient.post()
-			.uri("/api/beds")
-			.bodyValue(command)
-			.exchange()
-			.expectStatus().isCreated()
-			.expectBody(BedResourceWithCurrentState::class.java)
-			.consumeWith(document("prepare-bed"))
-			.value {
-				printResponse(it)
-				val resource = it as BedResourceWithCurrentState
-				val plantLink = resource.link("plant")
-				val waterLink = resource.link("water")
-				val fertilizeLink = resource.link("fertilize")
-				val historyLink = resource.link("history")
+		postCommand<BedResourceWithCurrentState>(
+			URI.create("/api/beds"),
+			"prepare-bed",
+			prepareBedCommand,
+			HttpStatus.CREATED) {
+			printResponse(it)
 
-				bedUuid = resource.id
-				assertThat(resource.rows.count()).isEqualTo(rowCount)
-				assertThat(resource.rows.all {
-					assertThat(it.cells.count()).isEqualTo(cellPerRowCount)
-					it.cells.all {
-						it == ""
-					}
-				})
-				assertThat(resource.name).isEqualTo("Earth")
+			val resource = it as BedResourceWithCurrentState
+			val plantLink = resource.link("plant")
+			val waterLink = resource.link("water")
+			val fertilizeLink = resource.link("fertilize")
+			val historyLink = resource.link("history")
 
-				postCommand(plantLink, "plant-seedling",
-					PlantSeedlingInBedCommand(
+			bedUuid = resource.id
+			assertThat(resource.rows.count()).isEqualTo(rowCount)
+			assertThat(resource.rows.all {
+				assertThat(it.cells.count()).isEqualTo(cellPerRowCount)
+				it.cells.all {
+					it == ""
+				}
+			})
+			assertThat(resource.name).isEqualTo("Earth")
+
+			postCommand<BedResourceWithCurrentState>(
+				plantLink,
+				"plant-seedling",
+				PlantSeedlingInBedCommand(
 					bedUuid,
 					1,
 					1,
 					"Tomato",
 					"Dark Galaxy"
-					)
 				)
+			)
 
-				mapOf(
-					1 to Date.from(Instant.now().minusSeconds(30L)),
-					2 to Date.from(Instant.now().minus(2L, ChronoUnit.DAYS)),
-					3 to Date.from(Instant.now().minus(300L, ChronoUnit.HOURS))).forEach {
-					val command = WaterBedCommand(
-						bedUuid,
-						it.value,
-						2.0
-					)
-					postCommand(waterLink, "water-bed", command)
-				}
+			mapOf(
+				1 to Date.from(Instant.now().minusSeconds(30L)),
+				2 to Date.from(Instant.now().minus(2L, ChronoUnit.DAYS)),
+				3 to Date.from(Instant.now().minus(300L, ChronoUnit.HOURS))).forEach {
+				val waterBedCommand = WaterBedCommand(
+					bedUuid,
+					it.value,
+					2.0
+				)
+				postCommand<BedResourceWithCurrentState>(
+					waterLink,
+					"water-bed",
+					waterBedCommand
+				)
+			}
 
-				postCommand(fertilizeLink, "fertilize-bed", FertilizeBedCommand(
+			postCommand<BedResourceWithCurrentState>(
+				fertilizeLink,
+				"fertilize-bed",
+				FertilizeBedCommand(
 					bedUuid,
 					Date.from(Instant.now().minus(2L, ChronoUnit.HOURS)),
 					1.0,
 					"Vegan Mix 3-2-2"
-					)
 				)
+			)
 
-				webTestClient.get()
-					.uri(historyLink)
-					.exchange()
-					.expectStatus().isOk()
-					.expectBody(BedResourceWithHistory::class.java)
-					.consumeWith(document("history"))
-					.value {
-						printResponse(it)
-					}
-			}
+			getQuery<BedResourceWithHistory>(
+				historyLink,
+				"get-history"
+			)
+
+		}
 	}
 
-	private fun postCommand(fertilizeLink: URI, exampleName: String, command: BedCommand) {
-		webTestClient.post()
-			.uri(fertilizeLink)
-			.bodyValue(command)
-			.exchange()
-			.expectStatus().isOk()
-			.expectBody(BedResourceWithCurrentState::class.java)
-			.consumeWith(document("fertilize-bed"))
-			.value {
-				printResponse(it)
+	private inline fun <reified  T> getQuery(link: URI, exampleName: String,
+											 noinline valueConsumer : (Any) -> Unit = {
+												printResponse(it)
+											 }) =
+		httpRequest<T>(HttpMethod.GET, link, exampleName, null, HttpStatus.OK)
+
+	private inline fun <reified T> postCommand(link: URI, exampleName: String,
+											   command: BedCommand,
+											   status: HttpStatusCode = HttpStatus.OK,
+											   noinline valueConsumer : (Any) -> Unit = {
+												   printResponse(it)
+											   }) =
+		httpRequest<T>(HttpMethod.POST, link, exampleName, command, status, valueConsumer)
+
+	private inline fun <reified T> httpRequest(method: HttpMethod, link: URI,
+											   exampleName: String,
+											   payload: Any? = null,
+											   status: HttpStatusCode,
+											   noinline valueConsumer : (Any) -> Unit = {
+								printResponse(it) }
+							) {
+		webTestClient.method(method)
+			.uri(link).let {
+				if (payload != null) it.bodyValue(payload)
+				return@let it
 			}
+			.exchange()
+			.expectStatus().isEqualTo(status)
+			.expectBody(T::class.java)
+			.consumeWith(document(exampleName))
+			.value(valueConsumer)
 	}
 
 	private fun printResponse(it: Any?) {

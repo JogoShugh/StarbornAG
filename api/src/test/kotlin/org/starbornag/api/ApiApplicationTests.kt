@@ -17,6 +17,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 import org.starbornag.api.domain.bed.BedCommand.*
 import org.starbornag.api.rest.bed.BedCommandHandler
 import org.starbornag.api.rest.bed.BedCommandMapper
+import org.starbornag.api.rest.bed.BedCurrentStateQueryHandler
 import org.starbornag.api.rest.bed.BedHistoryQueryHandler
 import org.starbornag.api.rest.bed.BedResourceWithCurrentState
 import org.starbornag.api.rest.bed.BedResourceWithHistory
@@ -30,6 +31,7 @@ import java.util.*
     controllers = [
         PrepareBedCommandHandler::class,
         BedCommandHandler::class,
+        BedCurrentStateQueryHandler::class,
         BedHistoryQueryHandler::class
     ]
 )
@@ -62,6 +64,7 @@ class ApiApplicationTests(
             printResponse(it)
 
             val resource = it as BedResourceWithCurrentState
+            val selfLink = resource.link("self")
             val plantLink = resource.link("plant")
             val waterLink = resource.link("water")
             val fertilizeLink = resource.link("fertilize")
@@ -152,6 +155,11 @@ class ApiApplicationTests(
                     "Thai Basil",
                     weight = 0.2
                 )
+            )
+
+            getQuery<BedResourceWithCurrentState>(
+                selfLink,
+                "self"
             )
 
             getQuery<BedResourceWithHistory>(

@@ -23,6 +23,7 @@ extra["snippetsDir"] = file("build/generated-snippets")
 
 
 dependencies {
+	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 	implementation("com.github.marlonlom:timeago:4.0.0")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	implementation("com.fasterxml.jackson.core:jackson-databind")
@@ -35,6 +36,32 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.restdocs:spring-restdocs-webtestclient")
+}
+
+springBoot {
+	mainClass.set("org.starbornag.api.ApiApplicationKt")
+}
+
+//tasks.withType<Jar> {
+//	manifest {
+//		attributes["Main-Class"] = "org.starbornag.api.ApiApplicationKt"
+//	}
+//}
+
+tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+	layered {
+		enabled = false
+	}
+}
+
+tasks.getByName<Jar>("jar") {
+	manifest {
+		attributes(
+			mapOf(
+				"Main-Class" to "org.starbornag.api.ApiApplicationKt" // Main class
+			)
+		)
+	}
 }
 
 tasks.withType<KotlinCompile> {

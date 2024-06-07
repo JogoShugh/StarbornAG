@@ -1,4 +1,4 @@
-package org.starbornag.api.domain.bed
+package org.starbornag.api.domain.bed.command
 
 import java.util.*
 
@@ -6,7 +6,8 @@ sealed class BedCommand() : BedId {
     data class PrepareBedCommand(
         override val bedId: UUID,
         val name: String,
-        val dimensions: Dimensions
+        val dimensions: Dimensions,
+        val cellBlockSize: Int
     ) : BedCommand()
 
     data class PlantSeedlingInBedCommand(

@@ -1,6 +1,9 @@
 package org.starbornag.api.domain.bed
 
-import org.starbornag.api.domain.bed.BedCommand.*
+import org.starbornag.api.domain.bed.command.BedCommand
+import org.starbornag.api.domain.bed.command.BedCommand.*
+import org.starbornag.api.domain.bed.command.Dimensions
+import org.starbornag.api.domain.bed.command.Row
 import java.util.*
 
 class BedAggregate(
@@ -9,14 +12,18 @@ class BedAggregate(
     val rows: List<Row>
 ) {
     companion object {
-        fun of(name: String, cellsPerRowCount: Int, rowCount: Int): BedAggregate {
+        fun of(id: UUID, name: String, dimensions: Dimensions, cellBlockSize: Int): BedAggregate {
             val start = 1
             val rows =
-                start.rangeTo(rowCount).map {
-                    Row(start.rangeTo(cellsPerRowCount).map { "" }.toMutableList())
+                start.rangeTo(dimensions.width).map {
+                    Row(start.rangeTo(dimensions.length / cellBlockSize).map {
+                        val bc = BedCellAggregate(id)
+                        BedCellRepository.putBedCell(bc)
+                        bc.id
+                    })
                 }
 
-            return BedAggregate(UUID.randomUUID(), name, rows)
+            return BedAggregate(id, name, rows)
         }
     }
 
@@ -47,8 +54,11 @@ class BedAggregate(
         // Adjust to be 1 based:
         val rowPosition = command.rowPosition - 1
         val cellPositionInRow = command.cellPositionInRow - 1
-        val cells = rows[rowPosition].cells
-        cells[cellPositionInRow] = "${command.plantType} - ${command.plantCultivar}"
+        val row = rows[rowPosition]
+        val cellId = row.cells[cellPositionInRow]
+        val bedCell = BedCellRepository.getBedCell(cellId)
+        val updatedBedCell = bedCell!!.copy(plantType = command.plantType, plantCultivar = command.plantCultivar)
+        BedCellRepository.putBedCell(updatedBedCell)
     }
 
     private fun execute(command: WaterBedCommand) {

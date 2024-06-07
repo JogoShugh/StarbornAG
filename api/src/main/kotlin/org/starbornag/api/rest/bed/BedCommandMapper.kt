@@ -2,10 +2,8 @@ package org.starbornag.api.rest.bed
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.stereotype.Component
-import org.starbornag.api.domain.bed.BedCommand
-import org.starbornag.api.domain.bed.BedCommand.FertilizeBedCommand
-import org.starbornag.api.domain.bed.BedCommand.PlantSeedlingInBedCommand
-import org.starbornag.api.domain.bed.BedCommand.WaterBedCommand
+import org.starbornag.api.domain.bed.command.BedCommand
+import org.starbornag.api.domain.bed.command.BedCommand.*
 
 @Component
 class BedCommandMapper(
@@ -16,7 +14,7 @@ class BedCommandMapper(
             "plant" to PlantSeedlingInBedCommand::class,
             "fertilize" to FertilizeBedCommand::class,
             "water" to WaterBedCommand::class,
-            "harvest" to BedCommand.HarvestBedCommand::class
+            "harvest" to HarvestBedCommand::class
         )
     }
 

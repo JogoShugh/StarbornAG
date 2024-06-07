@@ -1,6 +1,7 @@
 package org.starbornag.api.domain.bed
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.jsonSchema.jakarta.JsonSchema
 import com.jayway.jsonpath.internal.JsonFormatter.prettyPrint
 import org.assertj.core.api.AssertionsForInterfaceTypes.assertThat
 import org.junit.jupiter.api.Test
@@ -14,7 +15,9 @@ import org.springframework.http.HttpStatusCode
 import org.springframework.restdocs.webtestclient.WebTestClientRestDocumentation.document
 import org.springframework.test.context.TestConstructor
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.starbornag.api.domain.bed.BedCommand.*
+import org.starbornag.api.domain.bed.command.BedCommand
+import org.starbornag.api.domain.bed.command.BedCommand.*
+import org.starbornag.api.domain.bed.command.Dimensions
 import org.starbornag.api.rest.bed.BedCommandHandler
 import org.starbornag.api.rest.bed.BedCommandMapper
 import org.starbornag.api.rest.bed.BedCurrentStateQueryHandler
@@ -22,17 +25,21 @@ import org.starbornag.api.rest.bed.BedHistoryQueryHandler
 import org.starbornag.api.rest.bed.BedResourceWithCurrentState
 import org.starbornag.api.rest.bed.BedResourceWithHistory
 import org.starbornag.api.rest.bed.PrepareBedCommandHandler
+import org.starbornag.api.rest.bed.BedCommandSchemaQueryHandler
+
 import java.net.URI
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
+
 
 @WebFluxTest(
     controllers = [
         PrepareBedCommandHandler::class,
         BedCommandHandler::class,
         BedCurrentStateQueryHandler::class,
-        BedHistoryQueryHandler::class
+        BedHistoryQueryHandler::class,
+        BedCommandSchemaQueryHandler::class
     ]
 )
 @Import(BedCommandMapper::class)
@@ -47,12 +54,13 @@ class ApiApplicationTests(
 
     @Test
     fun `Create bed of 8 feet by 4 feet and plant, water, and fertilize it`() {
-        val rowCount = 4
-        val cellPerRowCount = 8
+        val bedLength = 8
+        val bedHWidth = 4
         val prepareBedCommand = PrepareBedCommand(
             UUID.randomUUID(),
             "Earth",
-            Dimensions(cellPerRowCount, rowCount)
+            Dimensions(bedLength, bedHWidth),
+            1
         )
 
         postCommand<BedResourceWithCurrentState>(
@@ -60,7 +68,7 @@ class ApiApplicationTests(
             "prepare-bed",
             prepareBedCommand,
             HttpStatus.CREATED
-        ) {
+        ) { it ->
             printResponse(it)
 
             val resource = it as BedResourceWithCurrentState
@@ -72,11 +80,11 @@ class ApiApplicationTests(
             val historyLink = resource.link("history")
 
             bedUuid = resource.id
-            assertThat(resource.rows.count()).isEqualTo(rowCount)
-            assertThat(resource.rows.all {
-                assertThat(it.cells.count()).isEqualTo(cellPerRowCount)
-                it.cells.all {
-                    it == ""
+            assertThat(resource.rows.count()).isEqualTo(bedHWidth)
+            assertThat(resource.rows.all { row ->
+                assertThat(row.cells.count()).isEqualTo(bedLength)
+                row.cells.all { cell ->
+                  cell != ""
                 }
             })
             assertThat(resource.name).isEqualTo("Earth")
@@ -167,6 +175,10 @@ class ApiApplicationTests(
                 "get-history"
             )
 
+            getQuery<JsonSchema>(
+                URI.create("$plantLink/schema"),
+                "get-schema"
+            )
         }
     }
 

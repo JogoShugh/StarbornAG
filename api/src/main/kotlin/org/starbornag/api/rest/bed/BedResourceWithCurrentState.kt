@@ -1,15 +1,16 @@
 package org.starbornag.api.rest.bed
 
-import org.starbornag.api.domain.bed.BedAggregate
-import org.starbornag.api.domain.bed.BedFertilized
-import org.starbornag.api.domain.bed.BedHarvested
-import org.starbornag.api.domain.bed.BedWatered
-import org.starbornag.api.domain.bed.Row
+import org.starbornag.api.domain.bed.*
+import org.starbornag.api.domain.bed.command.Row
 import java.util.*
+
+data class BedResourceRow(
+    val cells: List<String>
+)
 
 class BedResourceWithCurrentState(id: UUID,
                                   val name: String,
-                                  val rows: List<Row>,
+                                  val rows: List<BedResourceRow>,
                                   waterings: List<BedWatered>?,
                                   fertilizations: List<BedFertilized>?,
                                   harvestings: List<BedHarvested>?
@@ -18,7 +19,12 @@ class BedResourceWithCurrentState(id: UUID,
         fun from(bed: BedAggregate) = BedResourceWithCurrentState(
             bed.id,
             bed.name,
-            bed.rows,
+            bed.rows.map {
+                BedResourceRow(it.cells.map { id ->
+                    val cell = BedCellRepository.getBedCell(id)
+                    if (cell.plantType == "") "" else "${cell.plantType} - ${cell.plantCultivar}"
+                })
+            },
             bed.waterings,
             bed.fertilizations,
             bed.harvests

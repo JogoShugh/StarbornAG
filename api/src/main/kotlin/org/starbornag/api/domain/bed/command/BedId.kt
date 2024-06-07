@@ -1,4 +1,4 @@
-package org.starbornag.api.domain.bed
+package org.starbornag.api.domain.bed.command
 
 import java.util.*
 

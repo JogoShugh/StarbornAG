@@ -33,6 +33,7 @@ dependencies {
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 	implementation("org.springframework.boot:spring-boot-starter-hateoas")
 	implementation("com.github.marlonlom:timeago")
+	implementation("com.fasterxml.jackson.module:jackson-module-jsonSchema-jakarta")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.restdocs:spring-restdocs-webtestclient")

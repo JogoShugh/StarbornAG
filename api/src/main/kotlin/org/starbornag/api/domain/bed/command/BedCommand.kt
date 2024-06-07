@@ -10,7 +10,7 @@ sealed class BedCommand() : BedId {
         val cellBlockSize: Int
     ) : BedCommand()
 
-    data class PlantSeedlingInBedCommand(
+    data class PlantSeedlingCommand(
         override val bedId: UUID,
         val rowPosition: Int,
         val cellPositionInRow: Int,
@@ -18,20 +18,20 @@ sealed class BedCommand() : BedId {
         val plantCultivar: String
     ) : BedCommand()
 
-    data class FertilizeBedCommand(
+    data class FertilizeCommand(
         override val bedId: UUID,
         val started: Date,
         val volume: Double,
         val fertilizer: String
     ) : BedCommand()
 
-    data class WaterBedCommand(
+    data class WaterCommand(
         override val bedId: UUID,
         val started: Date,
         val volume: Double
     ) : BedCommand()
 
-    data class HarvestBedCommand(
+    data class HarvestCommand(
         override val bedId: UUID,
         val started: Date,
         val plantType: String,

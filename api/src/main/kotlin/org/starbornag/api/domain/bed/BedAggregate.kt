@@ -27,58 +27,31 @@ class BedAggregate(
         }
     }
 
-    val events = mutableListOf<BedEvent>()
-
-    val waterings: List<BedWatered>
-        get() = events.filterIsInstance<BedWatered>()
-
-    val fertilizations: List<BedFertilized>
-        get() = events.filterIsInstance<BedFertilized>()
-
-    val harvests: List<BedHarvested>
-        get() = events.filterIsInstance<BedHarvested>()
-
     // Generic command handler dispatcher
     fun <T : BedCommand> execute(command: T) {
         when (command) {
-            is PlantSeedlingInBedCommand -> execute(command)
-            is WaterBedCommand -> execute(command)
-            is FertilizeBedCommand -> execute(command)
-            is HarvestBedCommand -> execute(command)
-            else -> throw IllegalArgumentException("Unsupported command type")
+            is PlantSeedlingCommand -> execute(command)
+            else -> dispatchCommandToAllCells(command)
         }
     }
 
     // Concrete command handlers
-    private fun execute(command: PlantSeedlingInBedCommand) {
+    private fun execute(command: PlantSeedlingCommand) {
         // Adjust to be 1 based:
         val rowPosition = command.rowPosition - 1
         val cellPositionInRow = command.cellPositionInRow - 1
         val row = rows[rowPosition]
         val cellId = row.cells[cellPositionInRow]
         val bedCell = BedCellRepository.getBedCell(cellId)
-        val updatedBedCell = bedCell!!.copy(plantType = command.plantType, plantCultivar = command.plantCultivar)
-        BedCellRepository.putBedCell(updatedBedCell)
+        bedCell.execute(command)
     }
 
-    private fun execute(command: WaterBedCommand) {
-        val wateredEvent = BedWatered(command.started, command.volume)
-        events.add(wateredEvent)
-    }
-
-    private fun execute(command: FertilizeBedCommand) {
-        val fertilizedEvent = BedFertilized(command.started, command.volume, command.fertilizer)
-        events.add(fertilizedEvent)
-    }
-
-    private fun execute(command: HarvestBedCommand) {
-        val harvestedFromBedEvent = BedHarvested(
-            command.started,
-            command.plantType,
-            command.plantCultivar,
-            command.quantity,
-            command.weight
-        )
-        events.add(harvestedFromBedEvent)
+    private fun dispatchCommandToAllCells(command: BedCommand) {
+        rows.forEach { row ->
+            row.cells.forEach { cellId->
+                val cell = BedCellRepository.getBedCell(cellId)
+                cell.execute(command)
+            }
+        }
     }
 }

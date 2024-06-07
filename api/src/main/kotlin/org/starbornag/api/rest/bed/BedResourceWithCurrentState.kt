@@ -1,19 +1,26 @@
 package org.starbornag.api.rest.bed
 
 import org.starbornag.api.domain.bed.*
-import org.starbornag.api.domain.bed.command.Row
 import java.util.*
 
+data class BedResourceCell(
+    val planting: Planting,
+    val lastWatering: BedWatered?,
+    val lastFertilization: BedFertilized?,
+    val lastHarvest: BedHarvested?
+)
+
 data class BedResourceRow(
-    val cells: List<String>
+    val cells: List<BedResourceCell>
 )
 
 class BedResourceWithCurrentState(id: UUID,
                                   val name: String,
-                                  val rows: List<BedResourceRow>,
-                                  waterings: List<BedWatered>?,
-                                  fertilizations: List<BedFertilized>?,
-                                  harvestings: List<BedHarvested>?
+                                  val rows: List<BedResourceRow>
+//                                  ,
+//                                  waterings: List<BedWatered>?,
+//                                  fertilizations: List<BedFertilized>?,
+//                                  harvestings: List<BedHarvested>?
     ) : BedResource<BedResourceWithCurrentState>(id) {
     companion object {
         fun from(bed: BedAggregate) = BedResourceWithCurrentState(
@@ -22,25 +29,27 @@ class BedResourceWithCurrentState(id: UUID,
             bed.rows.map {
                 BedResourceRow(it.cells.map { id ->
                     val cell = BedCellRepository.getBedCell(id)
-                    if (cell.plantType == "") "" else "${cell.plantType} - ${cell.plantCultivar}"
+                    BedResourceCell(
+                        cell.planting,
+                        cell.waterings.lastOrNull(),
+                        cell.fertilizations.lastOrNull(),
+                        cell.harvests.lastOrNull()
+                    )
                 })
-            },
-            bed.waterings,
-            bed.fertilizations,
-            bed.harvests
+            }
         )
     }
 
-    val lastWatering: BedWatered?
-
-    val lastFertilization: BedFertilized?
-
-    val lastHarvest: BedHarvested?
-
-    init {
-        lastWatering = waterings?.lastOrNull()
-        lastFertilization = fertilizations?.lastOrNull()
-        lastHarvest = harvestings?.lastOrNull()
-    }
+//    val lastWatering: BedWatered?
+//
+//    val lastFertilization: BedFertilized?
+//
+//    val lastHarvest: BedHarvested?
+//
+//    init {
+//        lastWatering = waterings?.lastOrNull()
+//        lastFertilization = fertilizations?.lastOrNull()
+//        lastHarvest = harvestings?.lastOrNull()
+//    }
 }
 

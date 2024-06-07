@@ -1,10 +1,6 @@
 package org.starbornag.api.rest.bed
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.core.JsonGenerator
-import com.fasterxml.jackson.databind.JsonSerializer
-import com.fasterxml.jackson.databind.SerializerProvider
-import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import com.fasterxml.jackson.module.jsonSchema.jakarta.JsonSchema
 import com.fasterxml.jackson.module.jsonSchema.jakarta.JsonSchemaGenerator
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -24,10 +20,10 @@ object ObjectMapperSingleton {
 private fun getSchema(action: String) : JsonSchema {
     val commandClass = when (action.lowercase()) { // Determine serializer based on action
         "prepare" -> PrepareBedCommand::class.java
-        "plant" -> PlantSeedlingInBedCommand::class.java
-        "fertilize" -> FertilizeBedCommand::class.java
-        "water" -> WaterBedCommand::class.java
-        "harvest" -> HarvestBedCommand::class.java
+        "plant" -> PlantSeedlingCommand::class.java
+        "fertilize" -> FertilizeCommand::class.java
+        "water" -> WaterCommand::class.java
+        "harvest" -> HarvestCommand::class.java
         else -> throw Exception("Unknown action type")
     }
 
@@ -75,10 +71,10 @@ open class BedResource<T>(val id: UUID) : RepresentationModel<BedResource<T>>() 
 
     fun includeSchemas() {
         _linksSchemas.putAll(mapOf(
-                "plant" to getDataClassText(PlantSeedlingInBedCommand::class),
-                "water" to getDataClassText(WaterBedCommand::class),
-                "fertilize" to getDataClassText(FertilizeBedCommand::class),
-                "harvest" to getDataClassText(FertilizeBedCommand::class)
+                "plant" to getDataClassText(PlantSeedlingCommand::class),
+                "water" to getDataClassText(WaterCommand::class),
+                "fertilize" to getDataClassText(FertilizeCommand::class),
+                "harvest" to getDataClassText(FertilizeCommand::class)
             )
         )
     }

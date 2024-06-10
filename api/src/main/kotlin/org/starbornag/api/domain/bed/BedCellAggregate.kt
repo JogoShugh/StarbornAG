@@ -34,6 +34,8 @@ class BedCellAggregate(
 
     // Generic command handler dispatcher
     fun <T : BedCommand> execute(command: T) {
+        // Simulate latency
+        Thread.sleep(100)
         when (command) {
             is PlantSeedlingCommand -> execute(command)
             is WaterCommand -> execute(command)

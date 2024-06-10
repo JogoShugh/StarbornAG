@@ -1,5 +1,7 @@
 package org.starbornag.api.rest.bed
 
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PathVariable
@@ -19,14 +21,16 @@ class BedCommandHandler(
         @PathVariable bedId: UUID,
         @PathVariable action: String,
         @RequestBody commandPayload: Any
-    ): ResponseEntity<BedResourceWithCurrentState> {
+    ): ResponseEntity<BedResourceWithCurrentState> = runBlocking {
         try {
             val bed = BedRepository.getBed(bedId)
             val command = bedCommandMapper.convertCommand(action, commandPayload)
-            bed?.execute(command) // Execute the command directly
+            launch {
+                bed?.execute(command) // Execute the command directly
+            }
             val resource = BedResourceWithCurrentState.from(bed!!)
             val response = ResponseEntity.ok(resource)
-            return response
+            return@runBlocking response
         } catch(e: Exception) {
             println("Here is the exception: " + e.stackTraceToString())
             throw e

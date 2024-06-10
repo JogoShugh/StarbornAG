@@ -106,10 +106,10 @@ class ApiApplicationTestsCoroutines(
                 )
             }
 
-//            getQuery<BedResourceWithCurrentState>(
-//                selfLink,
-//                "self"
-//            )
+            getQuery<BedResourceWithCurrentState>(
+                selfLink,
+                "self"
+            )
 //
 //            getQuery<BedResourceWithHistory>(
 //                historyLink,

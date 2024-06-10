@@ -1,5 +1,7 @@
 package org.starbornag.api.domain.bed
 
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.starbornag.api.domain.bed.command.BedCommand
 import org.starbornag.api.domain.bed.command.BedCommand.*
 import org.starbornag.api.domain.bed.command.Dimensions
@@ -31,7 +33,9 @@ class BedAggregate(
     suspend fun <T : BedCommand> execute(command: T) {
         when (command) {
             is PlantSeedlingCommand -> execute(command)
-            else -> dispatchCommandToAllCells(command)
+            else ->  {
+                dispatchCommandToAllCells(command)
+            }
         }
     }
 
@@ -47,11 +51,24 @@ class BedAggregate(
     }
 
     private suspend fun dispatchCommandToAllCells(command: BedCommand) {
-        rows.forEach { row ->
-            row.cells.forEach { cellId->
-                val cell = BedCellRepository.getBedCell(cellId)
-                cell.execute(command)
+        runBlocking {
+            rows.forEach { row ->
+                row.cells.forEach { cellId ->
+                    launch {
+                        val cell = BedCellRepository.getBedCell(cellId)
+                        cell.execute(command)
+                    }
+                }
             }
         }
     }
+
+//    private suspend fun dispatchCommandToAllCells(command: BedCommand) {
+//        rows.forEach { row ->
+//            row.cells.forEach { cellId ->
+//                    val cell = BedCellRepository.getBedCell(cellId)
+//                    cell.execute(command)
+//            }
+//        }
+//    }
 }

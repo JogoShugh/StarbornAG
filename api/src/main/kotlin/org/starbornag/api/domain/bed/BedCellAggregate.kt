@@ -2,6 +2,7 @@ package org.starbornag.api.domain.bed
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.yield
 import org.starbornag.api.domain.bed.command.BedCommand
 import org.starbornag.api.domain.bed.command.BedCommand.*
 import java.util.*
@@ -37,7 +38,7 @@ class BedCellAggregate(
     // Generic command handler dispatcher
     suspend fun <T : BedCommand> execute(command: T) {
         // Simulate latency
-        delay(100.milliseconds)
+        delay(10.milliseconds)
         when (command) {
             is PlantSeedlingCommand -> execute(command)
             is WaterCommand -> execute(command)

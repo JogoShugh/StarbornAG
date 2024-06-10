@@ -1,9 +1,11 @@
 package org.starbornag.api.domain.bed
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import kotlinx.coroutines.delay
 import org.starbornag.api.domain.bed.command.BedCommand
 import org.starbornag.api.domain.bed.command.BedCommand.*
 import java.util.*
+import kotlin.time.Duration.Companion.milliseconds
 
 data class Planting(
     val plantType: String,
@@ -33,9 +35,9 @@ class BedCellAggregate(
         get() = events.filterIsInstance<BedHarvested>()
 
     // Generic command handler dispatcher
-    fun <T : BedCommand> execute(command: T) {
+    suspend fun <T : BedCommand> execute(command: T) {
         // Simulate latency
-        Thread.sleep(100)
+        delay(100.milliseconds)
         when (command) {
             is PlantSeedlingCommand -> execute(command)
             is WaterCommand -> execute(command)

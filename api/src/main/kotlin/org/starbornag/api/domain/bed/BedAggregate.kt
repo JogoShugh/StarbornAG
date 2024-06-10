@@ -28,7 +28,7 @@ class BedAggregate(
     }
 
     // Generic command handler dispatcher
-    fun <T : BedCommand> execute(command: T) {
+    suspend fun <T : BedCommand> execute(command: T) {
         when (command) {
             is PlantSeedlingCommand -> execute(command)
             else -> dispatchCommandToAllCells(command)
@@ -36,7 +36,7 @@ class BedAggregate(
     }
 
     // Concrete command handlers
-    private fun execute(command: PlantSeedlingCommand) {
+    private suspend fun execute(command: PlantSeedlingCommand) {
         // Adjust to be 1 based:
         val rowPosition = command.rowPosition - 1
         val cellPositionInRow = command.cellPositionInRow - 1
@@ -46,7 +46,7 @@ class BedAggregate(
         bedCell.execute(command)
     }
 
-    private fun dispatchCommandToAllCells(command: BedCommand) {
+    private suspend fun dispatchCommandToAllCells(command: BedCommand) {
         rows.forEach { row ->
             row.cells.forEach { cellId->
                 val cell = BedCellRepository.getBedCell(cellId)

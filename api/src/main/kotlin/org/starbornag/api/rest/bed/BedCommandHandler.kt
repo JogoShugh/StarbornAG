@@ -15,21 +15,21 @@ class BedCommandHandler(
     private val bedCommandMapper: BedCommandMapper
 ) {
     @PostMapping("/api/beds/{bedId}/{action}", consumes = [MediaType.APPLICATION_JSON_VALUE])
-    fun handle(
+    suspend fun handle(
         @PathVariable bedId: UUID,
         @PathVariable action: String,
         @RequestBody commandPayload: Any
-    ): Mono<ResponseEntity<BedResourceWithCurrentState>> {
+    ): ResponseEntity<BedResourceWithCurrentState> {
         try {
             val bed = BedRepository.getBed(bedId)
             val command = bedCommandMapper.convertCommand(action, commandPayload)
             bed?.execute(command) // Execute the command directly
             val resource = BedResourceWithCurrentState.from(bed!!)
             val response = ResponseEntity.ok(resource)
-            return Mono.just(response)
+            return response
         } catch(e: Exception) {
             println("Here is the exception: " + e.stackTraceToString())
-            return Mono.error(e);
+            throw e
         }
     }
 }

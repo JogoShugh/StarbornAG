@@ -13,9 +13,9 @@ import java.util.*
 class BedHistoryQueryHandler {
 
     @GetMapping("/api/beds/{bedId}/history")
-    fun handle(@PathVariable bedId: UUID): Mono<ResponseEntity<BedResourceWithHistory>> {
+    suspend fun handle(@PathVariable bedId: UUID): ResponseEntity<BedResourceWithHistory> {
         val bed = BedRepository.getBed(bedId)
         val resource = BedResourceWithHistory.from(bed!!)
-        return Mono.just(ResponseEntity.ok(resource))
+        return ResponseEntity.ok(resource)
     }
 }

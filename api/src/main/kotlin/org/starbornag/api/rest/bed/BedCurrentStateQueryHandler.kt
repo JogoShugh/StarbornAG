@@ -13,9 +13,9 @@ import java.util.*
 class BedCurrentStateQueryHandler {
 
     @GetMapping("/api/beds/{bedId}")
-    fun handle(@PathVariable bedId: UUID): Mono<ResponseEntity<BedResourceWithCurrentState>> {
+    suspend fun handle(@PathVariable bedId: UUID): ResponseEntity<BedResourceWithCurrentState> {
         val bed = BedRepository.getBed(bedId)
         val resource = BedResourceWithCurrentState.from(bed!!)
-        return Mono.just(ResponseEntity.ok(resource))
+        return ResponseEntity.ok(resource)
     }
 }

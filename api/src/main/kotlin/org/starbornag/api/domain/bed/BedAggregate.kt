@@ -1,5 +1,6 @@
 package org.starbornag.api.domain.bed
 
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.starbornag.api.domain.bed.command.BedCommand
@@ -51,7 +52,7 @@ class BedAggregate(
     }
 
     private suspend fun dispatchCommandToAllCells(command: BedCommand) {
-        runBlocking {
+        coroutineScope {
             rows.forEach { row ->
                 row.cells.forEach { cellId ->
                     launch {

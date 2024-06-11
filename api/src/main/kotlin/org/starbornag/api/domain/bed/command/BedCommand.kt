@@ -7,7 +7,7 @@ sealed class BedCommand() : BedId {
         override val bedId: UUID,
         val name: String,
         val dimensions: Dimensions,
-        val cellBlockSize: Int
+        val cellBlockSize: Int = 1
     ) : BedCommand()
 
     data class PlantSeedlingCommand(

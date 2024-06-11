@@ -2,7 +2,7 @@ package org.starbornag.api.domain.bed
 
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import org.starbornag.api.domain.bed.command.BedCommand
 import org.starbornag.api.domain.bed.command.BedCommand.*
 import org.starbornag.api.domain.bed.command.Dimensions
@@ -31,45 +31,36 @@ class BedAggregate(
     }
 
     // Generic command handler dispatcher
-    suspend fun <T : BedCommand> execute(command: T) {
+    suspend fun <T : BedCommand> execute(command: T, emitter: SseEmitter?) {
         when (command) {
-            is PlantSeedlingCommand -> execute(command)
+            is PlantSeedlingCommand -> execute(command, emitter)
             else ->  {
-                dispatchCommandToAllCells(command)
+                dispatchCommandToAllCells(command, emitter)
             }
         }
     }
 
     // Concrete command handlers
-    private suspend fun execute(command: PlantSeedlingCommand) {
+    private suspend fun execute(command: PlantSeedlingCommand, emitter: SseEmitter?) {
         // Adjust to be 1 based:
         val rowPosition = command.rowPosition - 1
         val cellPositionInRow = command.cellPositionInRow - 1
         val row = rows[rowPosition]
         val cellId = row.cells[cellPositionInRow]
         val bedCell = BedCellRepository.getBedCell(cellId)
-        bedCell.execute(command)
+        bedCell.execute(command, emitter)
     }
 
-    private suspend fun dispatchCommandToAllCells(command: BedCommand) {
+    private suspend fun dispatchCommandToAllCells(command: BedCommand, emitter: SseEmitter?) {
         coroutineScope {
             rows.forEach { row ->
                 row.cells.forEach { cellId ->
                     launch {
                         val cell = BedCellRepository.getBedCell(cellId)
-                        cell.execute(command)
+                        cell.execute(command, emitter)
                     }
                 }
             }
         }
     }
-
-//    private suspend fun dispatchCommandToAllCells(command: BedCommand) {
-//        rows.forEach { row ->
-//            row.cells.forEach { cellId ->
-//                    val cell = BedCellRepository.getBedCell(cellId)
-//                    cell.execute(command)
-//            }
-//        }
-//    }
 }

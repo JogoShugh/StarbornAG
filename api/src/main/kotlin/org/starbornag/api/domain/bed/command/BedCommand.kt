@@ -1,5 +1,6 @@
 package org.starbornag.api.domain.bed.command
 
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.util.*
 
 sealed class BedCommand() : BedId {

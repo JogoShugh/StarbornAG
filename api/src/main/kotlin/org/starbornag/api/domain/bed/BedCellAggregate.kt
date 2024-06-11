@@ -3,8 +3,11 @@ package org.starbornag.api.domain.bed
 import com.fasterxml.jackson.annotation.JsonIgnore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import org.starbornag.api.domain.bed.command.BedCommand
 import org.starbornag.api.domain.bed.command.BedCommand.*
+import org.starbornag.api.rest.bed.BedCommandHandler
+import org.starbornag.api.rest.bed.BedCommandHandler.Companion.emitters
 import java.util.*
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -36,12 +39,12 @@ class BedCellAggregate(
         get() = events.filterIsInstance<BedHarvested>()
 
     // Generic command handler dispatcher
-    suspend fun <T : BedCommand> execute(command: T) {
+    suspend fun <T : BedCommand> execute(command: T, emitter: SseEmitter?) {
         // Simulate latency
-        delay(8.milliseconds)
+        delay(10.milliseconds)
         when (command) {
             is PlantSeedlingCommand -> execute(command)
-            is WaterCommand -> execute(command)
+            is WaterCommand -> execute(command, emitter)
             is FertilizeCommand -> execute(command)
             is HarvestCommand -> execute(command)
             else -> throw IllegalArgumentException("Unsupported command type")
@@ -53,9 +56,18 @@ class BedCellAggregate(
         planting = Planting(command.plantType, command.plantCultivar)
     }
 
-    private fun execute(command: WaterCommand) {
+    private fun execute(command: WaterCommand, emitter: SseEmitter?) {
         val wateredEvent = BedWatered(command.started, command.volume)
         events.add(wateredEvent)
+        val event = SseEmitter.event()
+            .id(id.toString())
+            .name("BedCellWatered")
+            .data(wateredEvent) // Send the cell object itself
+        try {
+            emitter?.send(event)
+        } catch (e: Exception) {
+            println("The error: $e")
+        }
     }
 
     private fun execute(command: FertilizeCommand) {

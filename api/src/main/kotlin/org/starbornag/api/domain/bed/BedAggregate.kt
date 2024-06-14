@@ -1,8 +1,8 @@
 package org.starbornag.api.domain.bed
 
+import ch.rasc.sse.eventbus.SseEventBus
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import org.starbornag.api.domain.bed.command.BedCommand
 import org.starbornag.api.domain.bed.command.BedCommand.*
 import org.starbornag.api.domain.bed.command.Dimensions
@@ -31,33 +31,33 @@ class BedAggregate(
     }
 
     // Generic command handler dispatcher
-    suspend fun <T : BedCommand> execute(command: T, emitter: SseEmitter?) {
+    suspend fun <T : BedCommand> execute(command: T, sseEventBus: SseEventBus) {
         when (command) {
-            is PlantSeedlingCommand -> execute(command, emitter)
+            is PlantSeedlingCommand -> execute(command, sseEventBus)
             else ->  {
-                dispatchCommandToAllCells(command, emitter)
+                dispatchCommandToAllCells(command, sseEventBus)
             }
         }
     }
 
     // Concrete command handlers
-    private suspend fun execute(command: PlantSeedlingCommand, emitter: SseEmitter?) {
+    private suspend fun execute(command: PlantSeedlingCommand, sseEventBus: SseEventBus) {
         // Adjust to be 1 based:
         val rowPosition = command.rowPosition - 1
         val cellPositionInRow = command.cellPositionInRow - 1
         val row = rows[rowPosition]
         val cellId = row.cells[cellPositionInRow]
         val bedCell = BedCellRepository.getBedCell(cellId)
-        bedCell.execute(command, emitter)
+        bedCell.execute(command, sseEventBus)
     }
 
-    private suspend fun dispatchCommandToAllCells(command: BedCommand, emitter: SseEmitter?) {
+    private suspend fun dispatchCommandToAllCells(command: BedCommand, sseEventBus: SseEventBus) {
         coroutineScope {
             rows.forEach { row ->
                 row.cells.forEach { cellId ->
                     launch {
                         val cell = BedCellRepository.getBedCell(cellId)
-                        cell.execute(command, emitter)
+                        cell.execute(command, sseEventBus)
                     }
                 }
             }

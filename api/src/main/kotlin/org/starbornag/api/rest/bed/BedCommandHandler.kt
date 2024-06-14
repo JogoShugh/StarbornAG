@@ -1,5 +1,6 @@
 package org.starbornag.api.rest.bed
 
+import ch.rasc.sse.eventbus.SseEventBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -14,7 +15,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 @RestController
 class BedCommandHandler(
-    private val bedCommandMapper: BedCommandMapper
+    private val bedCommandMapper: BedCommandMapper,
+    private val sseEventBus: SseEventBus
 ) {
     companion object {
         val emitters = ConcurrentHashMap<UUID, SseEmitter>()
@@ -29,13 +31,10 @@ class BedCommandHandler(
         @RequestBody commandPayload: Any
     ): ResponseEntity<BedResourceWithCurrentState>  {
         try {
-            val emitter = emitters.getOrPut(bedId) {
-                SseEmitter()
-            }
             val bed = BedRepository.getBed(bedId)
-            val command = bedCommandMapper.convertCommand(action, commandPayload)
             scope.launch {
-                bed?.execute(command, emitter) // Execute the command directly
+                val command = bedCommandMapper.convertCommand(action, commandPayload)
+                bed?.execute(command, sseEventBus) // Execute the command directly
             }
             val resource = BedResourceWithCurrentState.from(bed!!)
             val response = ResponseEntity.ok(resource)
@@ -47,10 +46,8 @@ class BedCommandHandler(
     }
 
     @GetMapping("/api/beds/{bedId}/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    fun events(@PathVariable bedId: UUID): SseEmitter? {
-        val emitter = emitters.getOrPut(bedId) {
-            SseEmitter()
-        }
-        return emitter
-    }
+    fun events(@PathVariable bedId: UUID,
+               @RequestParam clientId: UUID
+               ): SseEmitter =
+        sseEventBus.createSseEmitter(clientId.toString(), 60_000L, bedId.toString())
 }

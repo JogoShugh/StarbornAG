@@ -1,7 +1,6 @@
 package org.starbornag.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.jsonSchema.jakarta.JsonSchema
 import com.jayway.jsonpath.internal.JsonFormatter
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test

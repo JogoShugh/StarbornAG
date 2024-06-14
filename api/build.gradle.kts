@@ -34,6 +34,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-hateoas")
 	implementation("com.github.marlonlom:timeago")
 	implementation("com.fasterxml.jackson.module:jackson-module-jsonSchema-jakarta")
+	implementation("ch.rasc:sse-eventbus:2.0.0")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.restdocs:spring-restdocs-webtestclient")

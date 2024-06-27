@@ -1,5 +1,7 @@
 package org.starbornag.api.rest.bed
 
+import jakarta.annotation.PostConstruct
+import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -7,7 +9,9 @@ import org.springframework.web.bind.annotation.RestController
 import org.starbornag.api.domain.bed.BedAggregate
 import org.starbornag.api.domain.bed.command.BedCommand.*
 import org.starbornag.api.domain.bed.BedRepository
+import org.starbornag.api.domain.bed.command.Dimensions
 import java.net.URI
+import java.util.*
 
 @RestController
 class PrepareBedCommandHandler {

@@ -7,10 +7,9 @@ echo ""
 ./waterlocal.sh
 echo "Just after water, expect all 'null' ->"
 echo ""
-./getlocal.sh
-echo "After a bit, expect all 'watered'"
-echo ""
-sleep 2
-./getlocal.sh
-
-
+#./getjupiter.sh
+#./listen.sh
+#echo "After a bit, expect all 'watered'"
+#echo ""
+#sleep 2
+#./getjupiter.sh

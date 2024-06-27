@@ -1,6 +1,7 @@
 package org.starbornag.api.rest.bed
 
 import ch.rasc.sse.eventbus.SseEventBus
+import jakarta.annotation.PostConstruct
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,10 +19,6 @@ class BedCommandHandler(
     private val bedCommandMapper: BedCommandMapper,
     private val sseEventBus: SseEventBus
 ) {
-    companion object {
-        val emitters = ConcurrentHashMap<UUID, SseEmitter>()
-    }
-
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @PostMapping("/api/beds/{bedId}/{action}", consumes = [MediaType.APPLICATION_JSON_VALUE])

@@ -45,6 +45,6 @@ class BedCommandHandler(
     @GetMapping("/api/beds/{bedId}/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun events(@PathVariable bedId: UUID,
                @RequestParam clientId: UUID
-               ): SseEmitter =
-        sseEventBus.createSseEmitter(clientId.toString(), 60_000L, bedId.toString())
+               ): ResponseEntity<SseEmitter> =
+        ResponseEntity.ok(sseEventBus.createSseEmitter(clientId.toString(), 60_000L, bedId.toString()))
 }

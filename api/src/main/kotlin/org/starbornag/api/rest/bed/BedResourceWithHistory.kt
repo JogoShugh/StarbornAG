@@ -1,9 +1,6 @@
 package org.starbornag.api.rest.bed
 
 import org.starbornag.api.domain.bed.BedAggregate
-import org.starbornag.api.domain.bed.BedFertilized
-import org.starbornag.api.domain.bed.BedHarvested
-import org.starbornag.api.domain.bed.BedWatered
 import org.starbornag.api.domain.bed.command.Row
 import java.util.*
 

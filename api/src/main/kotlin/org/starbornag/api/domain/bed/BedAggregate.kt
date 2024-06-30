@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import org.starbornag.api.domain.bed.command.BedCommand
 import org.starbornag.api.domain.bed.command.BedCommand.*
 import org.starbornag.api.domain.bed.command.Dimensions
+import org.starbornag.api.domain.bed.command.ICellPosition
 import org.starbornag.api.domain.bed.command.Row
 import java.util.*
 
@@ -34,9 +35,7 @@ class BedAggregate(
     suspend fun <T : BedCommand> execute(command: T, sseEventBus: SseEventBus) {
         when (command) {
             is PlantSeedlingCommand -> execute(command, sseEventBus)
-            else ->  {
-                dispatchCommandToAllCells(command, sseEventBus)
-            }
+            else ->  dispatchCommand(command, sseEventBus)
         }
     }
 
@@ -49,6 +48,53 @@ class BedAggregate(
         val cellId = row.cells[cellPositionInRow]
         val bedCell = BedCellRepository.getBedCell(cellId)
         bedCell.execute(command, sseEventBus)
+    }
+
+    private suspend fun dispatchCommand(command: BedCommand, sseEventBus: SseEventBus) {
+        when (command) {
+            is ICellPosition -> {
+                println("It's an ICellPosition! -> $command")
+                val row = command.row
+                val cell = command.cell
+                // handle case of both row and cell provided
+                if (row != null && cell != null) {
+                    val rowIndex = row - 1
+                    val cellIndex = cell - 1
+                    val rowItem = rows[rowIndex]
+                    val cellIem = rowItem.cells[cellIndex]
+                    coroutineScope {
+                        launch {
+                            val cellAg = BedCellRepository.getBedCell(cellIem)
+                            cellAg.execute(command, sseEventBus)
+                        }
+                    }
+                } else if (row != null && cell == null) {
+                    val rowIndex = row - 1
+                    coroutineScope {
+                        rows[rowIndex].cells.forEach {
+                            launch {
+                                val cellAg = BedCellRepository.getBedCell(it)
+                                cellAg.execute(command, sseEventBus)
+                            }
+                        }
+                    }
+                } else if (row == null && cell != null) {
+                    val cellIndex = cell - 1
+                    coroutineScope {
+                        rows.forEach {
+                            val cellId = it.cells[cellIndex]
+                            val cellAg = BedCellRepository.getBedCell(cellId)
+                            cellAg.execute(command, sseEventBus)
+                        }
+                    }
+                } else {
+                    dispatchCommandToAllCells(command, sseEventBus)
+                }
+            }
+            else ->  {
+                dispatchCommandToAllCells(command, sseEventBus)
+            }
+        }
     }
 
     private suspend fun dispatchCommandToAllCells(command: BedCommand, sseEventBus: SseEventBus) {

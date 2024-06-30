@@ -4,8 +4,9 @@ import org.starbornag.api.domain.bed.*
 import java.util.*
 
 data class BedResourceCell(
+    val bedCellId: UUID,
     val planting: Planting,
-    val lastWatering: BedWatered?,
+    val lastWatering: BedCellWatered?,
     val lastFertilization: BedFertilized?,
     val lastHarvest: BedHarvested?
 )
@@ -30,6 +31,7 @@ class BedResourceWithCurrentState(id: UUID,
                 BedResourceRow(it.cells.map { id ->
                     val cell = BedCellRepository.getBedCell(id)
                     BedResourceCell(
+                        cell.id,
                         cell.planting,
                         cell.waterings.lastOrNull(),
                         cell.fertilizations.lastOrNull(),

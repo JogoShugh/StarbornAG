@@ -1,9 +1,13 @@
 package org.starbornag.api.domain.bed.command
 
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.util.*
 
-sealed class BedCommand() : BedId {
+interface ICellPosition {
+    val row: Int?
+    val cell: Int?
+}
+
+sealed class BedCommand : BedId {
     data class PrepareBedCommand(
         override val bedId: UUID,
         val name: String,
@@ -29,8 +33,10 @@ sealed class BedCommand() : BedId {
     data class WaterCommand(
         override val bedId: UUID,
         val started: Date,
-        val volume: Double
-    ) : BedCommand()
+        val volume: Double,
+        override val row: Int? = null,
+        override val cell: Int? = null
+    ) : BedCommand(), ICellPosition
 
     data class HarvestCommand(
         override val bedId: UUID,

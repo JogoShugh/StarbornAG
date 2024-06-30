@@ -27,8 +27,8 @@ class BedCellAggregate(
 ) {
     val events = mutableListOf<BedEvent>()
 
-    val waterings: List<BedWatered>
-        get() = events.filterIsInstance<BedWatered>()
+    val waterings: List<BedCellWatered>
+        get() = events.filterIsInstance<BedCellWatered>()
 
     val fertilizations: List<BedFertilized>
         get() = events.filterIsInstance<BedFertilized>()
@@ -55,18 +55,19 @@ class BedCellAggregate(
     }
 
     private fun execute(command: WaterCommand, sseEventBus: SseEventBus) {
-        val wateredEvent = BedWatered(command.started, command.volume)
+        val wateredEvent = BedCellWatered(parentBedId, id, command.started, command.volume)
         events.add(wateredEvent)
         sseEventBus.handleEvent(SseEvent.of(command.bedId.toString(), wateredEvent))
     }
 
     private fun execute(command: FertilizeCommand) {
-        val fertilizedEvent = BedFertilized(command.started, command.volume, command.fertilizer)
+        val fertilizedEvent = BedFertilized(parentBedId, command.started, command.volume, command.fertilizer)
         events.add(fertilizedEvent)
     }
 
     private fun execute(command: HarvestCommand) {
         val harvestedEvent = BedHarvested(
+            parentBedId,
             command.started,
             command.plantType,
             command.plantCultivar,

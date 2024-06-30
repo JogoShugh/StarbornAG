@@ -31,6 +31,7 @@ import java.util.*
     include = JsonTypeInfo.As.PROPERTY,
     property = "type") // Keep for subtype serialization
 sealed class BedEvent(
+    val bedId: UUID,
     val started : Date,
     val ended: Date = Date.from(Instant.now())
 ) {
@@ -42,30 +43,35 @@ sealed class BedEvent(
 }
 
 @JsonTypeName("watered") // Add subtype names for each subclass
-class BedWatered(
+class BedCellWatered(
+    bedId: UUID,
+    val bedCellId: UUID,
     started: Date,
     val volume: Double
-) : BedEvent(started)
+) : BedEvent(bedId, started)
 
 @JsonTypeName("fertilized")
 class BedFertilized(
+    bedId: UUID,
     started: Date,
     val volume: Double,
     val fertilizer: String
-) : BedEvent(started)
+) : BedEvent(bedId, started)
 
 @JsonTypeName("mulched")
 class BedMulched(
+    bedId: UUID,
     started: Date,
     val volume: Double,
     val material: String
-) : BedEvent(started)
+) : BedEvent(bedId, started)
 
 @JsonTypeName("bedHarvested")
 class BedHarvested(
+    bedId: UUID,
     started: Date,
     val plantType: String,
     val plantCultivar: String,
     val quantity: Int? = null,
     val weight: Double? = null
-) : BedEvent(started)
+) : BedEvent(bedId, started)

@@ -53,42 +53,13 @@ class BedAggregate(
     private suspend fun dispatchCommand(command: BedCommand, sseEventBus: SseEventBus) {
         when (command) {
             is ICellPosition -> {
-                println("It's an ICellPosition! -> $command")
                 val row = command.row
                 val cell = command.cell
-                // handle case of both row and cell provided
-                if (row != null && cell != null) {
-                    val rowIndex = row - 1
-                    val cellIndex = cell - 1
-                    val rowItem = rows[rowIndex]
-                    val cellIem = rowItem.cells[cellIndex]
-                    coroutineScope {
-                        launch {
-                            val cellAg = BedCellRepository.getBedCell(cellIem)
-                            cellAg.execute(command, sseEventBus)
-                        }
-                    }
-                } else if (row != null && cell == null) {
-                    val rowIndex = row - 1
-                    coroutineScope {
-                        rows[rowIndex].cells.forEach {
-                            launch {
-                                val cellAg = BedCellRepository.getBedCell(it)
-                                cellAg.execute(command, sseEventBus)
-                            }
-                        }
-                    }
-                } else if (row == null && cell != null) {
-                    val cellIndex = cell - 1
-                    coroutineScope {
-                        rows.forEach {
-                            val cellId = it.cells[cellIndex]
-                            val cellAg = BedCellRepository.getBedCell(cellId)
-                            cellAg.execute(command, sseEventBus)
-                        }
-                    }
-                } else {
-                    dispatchCommandToAllCells(command, sseEventBus)
+                when {
+                    isForSingleCell(row, cell) -> dispatchToSingleCell(row!!, cell!!, command, sseEventBus)
+                    isForWholeRow(row, cell) -> dispatchToWholeRow(row!!, command, sseEventBus)
+                    isForWholeColumn(row, cell) -> dispatchToWholeColumn(cell!!, command, sseEventBus)
+                    else -> dispatchCommandToAllCells(command, sseEventBus)
                 }
             }
             else ->  {
@@ -96,6 +67,61 @@ class BedAggregate(
             }
         }
     }
+
+    private suspend fun dispatchToWholeColumn(
+        cell: Int,
+        command: BedCommand,
+        sseEventBus: SseEventBus
+    ) {
+        val cellIndex = cell - 1
+        coroutineScope {
+            rows.forEach {
+                val cellId = it.cells[cellIndex]
+                val cellAg = BedCellRepository.getBedCell(cellId)
+                cellAg.execute(command, sseEventBus)
+            }
+        }
+    }
+
+    private fun isForWholeColumn(row: Int?, cell: Int?) = row == null && cell != null
+
+    private suspend fun dispatchToWholeRow(
+        row: Int,
+        command: BedCommand,
+        sseEventBus: SseEventBus
+    ) {
+        val rowIndex = row - 1
+        coroutineScope {
+            rows[rowIndex].cells.forEach {
+                launch {
+                    val cellAg = BedCellRepository.getBedCell(it)
+                    cellAg.execute(command, sseEventBus)
+                }
+            }
+        }
+    }
+
+    private fun isForWholeRow(row: Int?, cell: Int?) = row != null && cell == null
+
+    private suspend fun dispatchToSingleCell(
+        row: Int,
+        cell: Int,
+        command: BedCommand,
+        sseEventBus: SseEventBus
+    ) {
+        val rowIndex = row - 1
+        val cellIndex = cell - 1
+        val rowItem = rows[rowIndex]
+        val cellIem = rowItem.cells[cellIndex]
+        coroutineScope {
+            launch {
+                val cellAg = BedCellRepository.getBedCell(cellIem)
+                cellAg.execute(command, sseEventBus)
+            }
+        }
+    }
+
+    private fun isForSingleCell(row: Int?, cell: Int?) = row != null && cell != null
 
     private suspend fun dispatchCommandToAllCells(command: BedCommand, sseEventBus: SseEventBus) {
         coroutineScope {

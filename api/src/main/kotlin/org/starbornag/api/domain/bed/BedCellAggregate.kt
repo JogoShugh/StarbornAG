@@ -41,17 +41,21 @@ class BedCellAggregate(
         // Simulate latency
         delay(10.milliseconds)
         when (command) {
-            is PlantSeedlingCommand -> execute(command)
+            is PlantSeedlingCommand -> execute(command, sseEventBus)
             is WaterCommand -> execute(command, sseEventBus)
-            is FertilizeCommand -> execute(command)
+            is FertilizeCommand -> execute(command, sseEventBus)
             is HarvestCommand -> execute(command)
+            is MulchCommand -> execute(command, sseEventBus)
             else -> throw IllegalArgumentException("Unsupported command type")
         }
     }
 
     // Concrete command handlers
-    private fun execute(command: PlantSeedlingCommand) {
+    private fun execute(command: PlantSeedlingCommand, sseEventBus: SseEventBus) {
+        val plantedEvent = BedCellPlanted(parentBedId, id, command.started, command.plantType, command.plantCultivar)
         planting = Planting(command.plantType, command.plantCultivar)
+        events.add(plantedEvent)
+        sseEventBus.handleEvent(SseEvent.of(command.bedId.toString(), plantedEvent))
     }
 
     private fun execute(command: WaterCommand, sseEventBus: SseEventBus) {
@@ -60,20 +64,27 @@ class BedCellAggregate(
         sseEventBus.handleEvent(SseEvent.of(command.bedId.toString(), wateredEvent))
     }
 
-    private fun execute(command: FertilizeCommand) {
-        val fertilizedEvent = BedFertilized(parentBedId, command.started, command.volume, command.fertilizer)
+    private fun execute(command: FertilizeCommand, sseEventBus: SseEventBus) {
+        val fertilizedEvent = BedFertilized(parentBedId, id, command.started, command.volume, command.fertilizer)
         events.add(fertilizedEvent)
+        sseEventBus.handleEvent(SseEvent.of(command.bedId.toString(), fertilizedEvent))
+    }
+
+    private fun execute(command: MulchCommand, sseEventBus: SseEventBus) {
+        val mulchedEvent = BedMulched(parentBedId, id, command.started, command.volume, command.material)
+        events.add(mulchedEvent)
+        sseEventBus.handleEvent(SseEvent.of(command.bedId.toString(), mulchedEvent))
     }
 
     private fun execute(command: HarvestCommand) {
-        val harvestedEvent = BedHarvested(
-            parentBedId,
-            command.started,
-            command.plantType,
-            command.plantCultivar,
-            command.quantity,
-            command.weight
-        )
-        events.add(harvestedEvent)
+//        val harvestedEvent = BedHarvested(
+//            parentBedId,
+//            command.started,
+//            command.plantType,
+//            command.plantCultivar,
+//            command.quantity,
+//            command.weight
+//        )
+//        events.add(harvestedEvent)
     }
 }

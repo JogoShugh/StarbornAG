@@ -2,12 +2,8 @@ package org.starbornag.api.domain.bed.command
 
 import java.util.*
 
-interface ICellPosition {
-    val row: Int?
-    val cell: Int?
-}
-
-sealed class BedCommand : BedId {
+sealed class BedCommand(row: Int? = null, column: Int? = null) : BedId {
+    val cells: CellsSelection? = null
     data class PrepareBedCommand(
         override val bedId: UUID,
         val name: String,
@@ -17,10 +13,12 @@ sealed class BedCommand : BedId {
 
     data class PlantSeedlingCommand(
         override val bedId: UUID,
-        val rowPosition: Int,
-        val cellPositionInRow: Int,
+        val started: Date,
+//        val row: Int,
+//        val column: Int,
         val plantType: String,
-        val plantCultivar: String
+        val plantCultivar: String,
+        val location: CellsSelection
     ) : BedCommand()
 
     data class FertilizeCommand(
@@ -30,13 +28,18 @@ sealed class BedCommand : BedId {
         val fertilizer: String
     ) : BedCommand()
 
-    data class WaterCommand(
+    data class MulchCommand(
         override val bedId: UUID,
         val started: Date,
         val volume: Double,
-        override val row: Int? = null,
-        override val cell: Int? = null
-    ) : BedCommand(), ICellPosition
+        val material: String
+    ) : BedCommand()
+
+    data class WaterCommand(
+        override val bedId: UUID,
+        val started: Date,
+        val volume: Double
+    ) : BedCommand()
 
     data class HarvestCommand(
         override val bedId: UUID,

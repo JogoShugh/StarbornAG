@@ -17,6 +17,8 @@ import org.springframework.test.context.TestConstructor
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.starbornag.api.domain.bed.command.BedCommand
 import org.starbornag.api.domain.bed.command.BedCommand.*
+import org.starbornag.api.domain.bed.command.CellPosition
+import org.starbornag.api.domain.bed.command.CellsSelection
 import org.starbornag.api.domain.bed.command.Dimensions
 import org.starbornag.api.rest.bed.BedCommandHandler
 import org.starbornag.api.rest.bed.BedCommandMapper
@@ -31,7 +33,6 @@ import java.net.URI
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
-
 
 @WebFluxTest(
     controllers = [
@@ -94,10 +95,10 @@ class ApiApplicationTests(
                 "plant-seedling",
                 PlantSeedlingCommand(
                     bedUuid,
-                    1,
-                    1,
+                    Date.from(Instant.now()),
                     "Tomato",
-                    "Dark Galaxy"
+                    "Dark Galaxy",
+                    location = CellsSelection(cell = CellPosition(1, 1))
                 )
             )
 
@@ -106,10 +107,10 @@ class ApiApplicationTests(
                 "plant-seedling",
                 PlantSeedlingCommand(
                     bedUuid,
-                    1,
-                    2,
+                    Date.from(Instant.now()),
                     "Basil",
-                    "Thai Basil"
+                    "Thai Basil",
+                    location = CellsSelection(cell = CellPosition(1, 2))
                 )
             )
 

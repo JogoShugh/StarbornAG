@@ -14,12 +14,14 @@ class BedCommandMapper(
             "plant" to PlantSeedlingCommand::class,
             "fertilize" to FertilizeCommand::class,
             "water" to WaterCommand::class,
+            "mulch" to MulchCommand::class,
             "harvest" to HarvestCommand::class
         )
     }
 
     fun convertCommand(action: String, commandData: Any): BedCommand {
         val commandType = pathToCommandTypeMap[action] ?: throw IllegalArgumentException("Unsupported action: $action")
-        return objectMapper.readValue(objectMapper.writeValueAsString(commandData), commandType.java)
+        val value = objectMapper.writeValueAsString(commandData)
+        return objectMapper.readValue(value, commandType.java)
     }
 }

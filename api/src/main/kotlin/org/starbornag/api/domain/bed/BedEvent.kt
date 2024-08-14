@@ -32,6 +32,7 @@ import java.util.*
     property = "type") // Keep for subtype serialization
 sealed class BedEvent(
     val bedId: UUID,
+    val bedCellId: UUID,
     val started : Date,
     val ended: Date = Date.from(Instant.now())
 ) {
@@ -42,36 +43,48 @@ sealed class BedEvent(
         get() = TimeAgo.using(ended.time)
 }
 
+@JsonTypeName("planted") // Add subtype names for each subclass
+class BedCellPlanted(
+    bedId: UUID,
+    bedCellId: UUID,
+    started: Date,
+    val plantType: String,
+    val plantCultivar: String
+) : BedEvent(bedId, bedCellId, started)
+
 @JsonTypeName("watered") // Add subtype names for each subclass
 class BedCellWatered(
     bedId: UUID,
-    val bedCellId: UUID,
+    bedCellId: UUID,
     started: Date,
     val volume: Double
-) : BedEvent(bedId, started)
+) : BedEvent(bedId, bedCellId, started)
 
 @JsonTypeName("fertilized")
 class BedFertilized(
     bedId: UUID,
+    bedCellId: UUID,
     started: Date,
     val volume: Double,
     val fertilizer: String
-) : BedEvent(bedId, started)
+) : BedEvent(bedId, bedCellId, started)
 
 @JsonTypeName("mulched")
 class BedMulched(
     bedId: UUID,
+    bedCellId: UUID,
     started: Date,
     val volume: Double,
     val material: String
-) : BedEvent(bedId, started)
+) : BedEvent(bedId, bedCellId, started)
 
 @JsonTypeName("bedHarvested")
 class BedHarvested(
     bedId: UUID,
+    bedCellId: UUID,
     started: Date,
     val plantType: String,
     val plantCultivar: String,
     val quantity: Int? = null,
     val weight: Double? = null
-) : BedEvent(bedId, started)
+) : BedEvent(bedId, bedCellId, started)

@@ -4,60 +4,28 @@ import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.DeserializationContext
 import com.fasterxml.jackson.databind.JsonDeserializer
 import com.fasterxml.jackson.databind.JsonNode
+import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
 open class StringToObjectDeserializer<T>(
     clazz: Class<T>,
-    private val convert: (String) -> T?,
-    private val fallbackConvert: (JsonNode) -> T?
+    private val convert: (String) -> T?
 ) : JsonDeserializer<T>() {
-    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): T? {
-        val node: JsonNode = p.readValueAsTree()
-        if (node.isTextual) {
-            return convert(node.asText())
-        } else if (node.isObject) {
-            return fallbackConvert(node)
-        } else {
-            TODO()
-        }
+    private val adapter : JsonAdapter<T>
+    init {
+        val moshi = Moshi.Builder()
+            .addLast(KotlinJsonAdapterFactory())
+            .build()
+        adapter = moshi.adapter(clazz)
     }
-}
-
-open class StringToObjectDeserializerWithDefaultFallback<T>(
-    private val clazz: Class<T>,
-    private val convert: (String) -> T?,
-    private val fallback: (String) -> T?
-) : JsonDeserializer<T>() {
-
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext): T? {
         val node: JsonNode = p.readValueAsTree()
         return if (node.isTextual) {
             convert(node.asText())
         } else if (node.isObject) {
-            val moshi = Moshi.Builder()
-                .addLast(KotlinJsonAdapterFactory())
-                .build()
-            val adapter = moshi.adapter(clazz)
-            adapter.fromJson(node.toString())
-        } else {
-            TODO()
-        }
-    }
-}
-
-open class StringToObjectDeserializerWithPojoFallback<T, F:T>(
-    private val convert: (String) -> T?,
-    private val clazz: Class<F>
-) : JsonDeserializer<T>() {
-    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): T? {
-        val node: JsonNode = p.readValueAsTree()
-        if (node.isTextual) {
-            return convert(node.asText())
-        } else if (node.isObject) {
-            val mapper = p.codec
-            val pojo : F = mapper.treeToValue(node, clazz)
-            return pojo
+            val json = node.toString()
+            adapter.fromJson(json)
         } else {
             TODO()
         }

@@ -1,11 +1,9 @@
 package org.starbornag.api.domain.bed.command
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
-//import kotlinx.serialization.Serializable
 import org.starbornag.api.domain.bed.command.serialization.CellPositionDeserializer
 
 @JsonDeserialize(using = CellPositionDeserializer::class)
-//@Serializable
 data class CellPosition(
     val row: Int,
     val column: Int) {

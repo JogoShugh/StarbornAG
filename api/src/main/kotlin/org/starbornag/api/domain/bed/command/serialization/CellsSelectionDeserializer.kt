@@ -2,26 +2,23 @@ package org.starbornag.api.domain.bed.command.serialization
 
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.*
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.starbornag.api.domain.bed.command.CellPosition
 import org.starbornag.api.domain.bed.command.CellPositionList
 import org.starbornag.api.domain.bed.command.CellRange
 import org.starbornag.api.domain.bed.command.CellsSelection
 
+
+// NOTE: this is not working...not really sure why, but let's move on for now...
+//class CellsSelectionDeserializer : StringToObjectDeserializer<CellsSelection>(
+//    CellsSelection::class.java,
+//    CellsSelection.Companion::fromString
+//)
+
 class CellsSelectionDeserializer : JsonDeserializer<CellsSelection>() {
-    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): CellsSelection {
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): CellsSelection? {
         val node: JsonNode = p.readValueAsTree()
         return if (node.isTextual) {
-            val input = node.asText()
-            // Test CellRange first, since it would also match for CellPosition
-            if (CellRange.isMatch(input)) {
-                CellsSelection(cellRange = CellRange.fromString(input))
-            } else if (CellPosition.isMatch(input)) {
-                CellsSelection(cell = CellPosition.fromString(input))
-            } else {
-                // TODO provide additional info here
-                throw JsonMappingException(p, "Invalid JSON format for CellsSelection")
-            }
+            CellsSelection.fromString(node.asText())
         } else if (node.isObject) {
             // Manually deserialize other properties
             val row = if (node.hasNonNull("row")) node.get("row").asInt() else null

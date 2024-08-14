@@ -14,6 +14,18 @@ data class CellsSelection(
     val cellStart: CellPosition? = null,
     val cellEnd: CellPosition? = null
 ) {
+    companion object {
+        fun fromString(input: String) : CellsSelection? {
+            // Test CellRange first, since it would also match for CellPosition
+            return if (CellRange.isMatch(input)) {
+                CellsSelection(cellRange = CellRange.fromString(input))
+            } else if (CellPosition.isMatch(input)) {
+                CellsSelection(cell = CellPosition.fromString(input))
+            } else {
+                TODO()
+            }
+        }
+    }
     @get:JsonIgnore
     val isSingleCell get() = hasCell && !hasRow && !hasColumn && !hasCells && !hasCellStart && !hasCellEnd && !hasCellRange
     @get:JsonIgnore

@@ -16,7 +16,7 @@ import java.util.stream.Stream
 abstract class DeserializationTest<T>(private val type: Class<T>) {
     abstract val baseCases : Map<String, T>
 
-    protected fun compare(actual: T, expected: T) {
+    private fun compare(actual: T, expected: T) {
         when {
             actual is Iterable<*> && expected is Iterable<*> -> {
                 assertThat(actual.count()).isEqualTo(expected.count())

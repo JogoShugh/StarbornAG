@@ -1,7 +1,5 @@
 package org.starbornag.api.domain.bed.serialization
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import org.junit.jupiter.api.Test
 import org.starbornag.api.domain.bed.command.CellPosition
 
 class CellPositionDeserializationTest : DeserializationTest<CellPosition>(CellPosition::class.java) {

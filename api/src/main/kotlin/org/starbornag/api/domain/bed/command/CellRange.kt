@@ -1,9 +1,10 @@
 package org.starbornag.api.domain.bed.command
 
+import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
-import org.starbornag.api.domain.bed.command.serialization.CellRangeDeserializer
+//import org.starbornag.api.domain.bed.command.serialization.CellRangeDeserializer
 
-@JsonDeserialize(using = CellRangeDeserializer::class)
+//@JsonDeserialize(using = CellRangeDeserializer::class)
 data class CellRange(
     val cellStart: CellPosition,
     val cellEnd: CellPosition
@@ -15,8 +16,11 @@ data class CellRange(
         fun of(cellStart: String, cellEnd: String) =
             // TODO: should I not allow the !! here?
             CellRange(CellPosition.fromString(cellStart)!!, CellPosition.fromString(cellEnd)!!)
-        fun fromString(input: String): CellRange? {
-            val matchResult = rangeRegex.matchEntire(input)
+
+        @JvmStatic
+        @JsonCreator
+        fun fromString(value: String): CellRange? {
+            val matchResult = rangeRegex.matchEntire(value)
             return when {
                 matchResult != null -> {
                     val (row1, col1, row2, col2) = matchResult.destructured

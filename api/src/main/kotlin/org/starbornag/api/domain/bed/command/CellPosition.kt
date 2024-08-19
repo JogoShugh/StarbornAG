@@ -1,9 +1,10 @@
 package org.starbornag.api.domain.bed.command
 
+import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
-import org.starbornag.api.domain.bed.command.serialization.CellPositionDeserializer
+//import org.starbornag.api.domain.bed.command.serialization.CellPositionDeserializer
 
-@JsonDeserialize(using = CellPositionDeserializer::class)
+//@JsonDeserialize(using = CellPositionDeserializer::class)
 data class CellPosition(
     val row: Int,
     val column: Int) {
@@ -31,8 +32,10 @@ data class CellPosition(
         // TODO: more robust checking and throw meaningful error...
         fun of(input: String): CellPosition = fromString(input)!!
 
-        fun fromString(input: String): CellPosition? {
-            val matchResult = cellRegex.matchEntire(input.trim())
+        @JvmStatic
+        @JsonCreator
+        fun fromString(value: String): CellPosition? {
+            val matchResult = cellRegex.matchEntire(value.trim())
             if (matchResult != null) {
                 val (rowOrColLetters, colStr) = matchResult.destructured
                 val cellPosition = CellPosition.of(rowOrColLetters, colStr)

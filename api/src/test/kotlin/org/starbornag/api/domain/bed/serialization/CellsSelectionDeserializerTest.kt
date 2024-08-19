@@ -15,7 +15,7 @@ class CellsSelectionDeserializerTest {
     @Test
     fun `deserializes single cell reference string`() {
         val input = "\"A1\""
-        val expected = CellsSelection(cell = CellPosition.of("A1"))
+        val expected = CellsSelection(cell = of("A1"))
         val actual = mapper.readValue(input, CellsSelection::class.java)
         assertEqual(actual, expected)
     }
@@ -42,6 +42,76 @@ class CellsSelectionDeserializerTest {
                 of("A2"),
                 of("A3")
             )
+        )
+
+        assertEqual(actual, expected)
+    }
+
+    @Test
+    fun `deserializes maximally structured json`() {
+        val input = """
+            {
+                "row": 1,
+                "column": 1,
+                "cell": {"row":1, "column":1},
+                "cells": ["A1", "A2", "A3"],
+                "cellRange": {"cellStart":{"row":1, "column":1}, "cellEnd": {"row":2,"column":2}},
+                "cellStart": {"row":1,"column":1},
+                "cellEnd": {"row":2,"column":2}                         
+            }            
+        """.trimIndent()
+
+        val actual = mapper.readValue(input, CellsSelection::class.java)
+        val expected = CellsSelection(
+            row = 1,
+            column = 1,
+            cell = CellPosition(1, 1),
+            cells = CellPositionList(
+                of("A1"),
+                of("A2"),
+                of("A3")
+            ),
+            cellRange = CellRange.of(1, 1, 2, 2),
+            cellStart = CellPosition(1, 1),
+            cellEnd = CellPosition(2, 2)
+        )
+
+        assertEqual(actual, expected)
+    }
+
+    @Test
+    fun `deserializes maximally stringy json`() {
+        // Note Jackson automatically knows how to convert "1" to 1, etc:
+        // Note: for Cells, for deserialization simplicity, we cannot
+        // have "1 1 1 2 1 3" -- an admittedly odd case,
+        // but theoretically possible from bad AI translations.
+        //
+        // If it becomes a problem, we can adjust it...
+        val input = """
+            {
+                "row": " 1 ",
+                "column": " 1   ",
+                "cell": "A 1",
+                "cells": "A1 1:2, A:3",
+                "cellRange": "A 1 to B 2",
+                "cellStart": "1 1",
+                "cellEnd": "2 : 2"                         
+            }            
+        """.trimIndent()
+
+        val actual = mapper.readValue(input, CellsSelection::class.java)
+        val expected = CellsSelection(
+            row = 1,
+            column = 1,
+            cell = CellPosition(1, 1),
+            cells = CellPositionList(
+                of("A1"),
+                of("A2"),
+                of("A3")
+            ),
+            cellRange = CellRange.of(1, 1, 2, 2),
+            cellStart = CellPosition(1, 1),
+            cellEnd = CellPosition(2, 2)
         )
 
         assertEqual(actual, expected)

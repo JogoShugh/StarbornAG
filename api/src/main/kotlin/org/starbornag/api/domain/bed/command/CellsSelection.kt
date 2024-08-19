@@ -1,45 +1,52 @@
 package org.starbornag.api.domain.bed.command
 
+import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonIgnore
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize
-import org.starbornag.api.domain.bed.command.serialization.CellsSelectionDeserializer
 
-@JsonDeserialize(using = CellsSelectionDeserializer::class)
-data class CellsSelection(
+class CellsSelection(
     val row: Int? = null,
     val column: Int? = null,
     val cell: CellPosition? = null,
     val cells: CellPositionList? = null,
     val cellRange: CellRange? = null,
     val cellStart: CellPosition? = null,
-    val cellEnd: CellPosition? = null
-) {
+    val cellEnd: CellPosition? = null) {
+
     companion object {
-        fun fromString(input: String) : CellsSelection? {
+        @JvmStatic
+        @JsonCreator
+        fun fromString(value: String): CellsSelection? {
             // Test CellRange first, since it would also match for CellPosition
-            return if (CellRange.isMatch(input)) {
-                CellsSelection(cellRange = CellRange.fromString(input))
-            } else if (CellPosition.isMatch(input)) {
-                CellsSelection(cell = CellPosition.fromString(input))
+            return if (CellRange.isMatch(value)) {
+                CellsSelection(cellRange = CellRange.fromString(value))
+            // TODO: we could add one for CellPositionList as a secondary match, if needed
+            } else if (CellPosition.isMatch(value)) {
+                CellsSelection(cell = CellPosition.fromString(value))
             } else {
-                TODO()
+                null
             }
         }
     }
+
     @get:JsonIgnore
     val isSingleCell get() = hasCell && !hasRow && !hasColumn && !hasCells && !hasCellStart && !hasCellEnd && !hasCellRange
+
     @get:JsonIgnore
     val isSingleColumn get() = hasColumn && !hasRow && !hasCell && !hasCells && !hasCellStart && !hasCellEnd && !hasCellRange
+
     @get:JsonIgnore
     val isSingleRow get() = hasRow && !hasColumn && !hasCell && !hasCells && !hasCellStart && !hasCellEnd && !hasCellRange
+
     @get:JsonIgnore
     val isCellList get() = hasCells && !hasColumn && !hasRow && !hasCell && !hasCellStart && !hasCellEnd && !hasCellRange
+
     @get:JsonIgnore
     private val isRangeByCellStartAndEnd get() = !hasCellRange && hasCellStart && hasCellEnd
+
     @get:JsonIgnore
     private val isRangeByCellRange get() = hasCellRange && !hasCellStart && !hasCellEnd
 
-    suspend fun streamCellPositions(rowCount: Int, columnCount: Int) : Sequence<CellPosition> {
+    suspend fun streamCellPositions(rowCount: Int, columnCount: Int): Sequence<CellPosition> {
         if (isCellList) {
             return sequence {
                 cells!!.forEach {
@@ -54,13 +61,15 @@ data class CellsSelection(
             else -> when {
                 isSingleCell -> CellRange(cell!!, cell)
                 isSingleColumn -> CellRange(
-                        CellPosition(1, column!!),
-                        CellPosition(rowCount, column)
-                    )
+                    CellPosition(1, column!!),
+                    CellPosition(rowCount, column)
+                )
+
                 isSingleRow -> CellRange(
-                        CellPosition(row!!, 1),
-                        CellPosition(row, columnCount)
-                    )
+                    CellPosition(row!!, 1),
+                    CellPosition(row, columnCount)
+                )
+
                 else -> {
                     TODO()
                 }
@@ -68,13 +77,13 @@ data class CellsSelection(
         }
 
         return sequence {
-            for (row in start.row .. end.row) {
-                for (col in start.column .. end.column) {
+            for (row in start.row..end.row) {
+                for (col in start.column..end.column) {
                     yield(CellPosition(row, col))
                 }
             }
         }
-     }
+    }
 
     private val hasRow get() = row != null
     private val hasColumn get() = column != null

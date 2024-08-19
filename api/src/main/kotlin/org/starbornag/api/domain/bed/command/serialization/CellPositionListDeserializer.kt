@@ -12,8 +12,7 @@ class CellPositionListDeserializer : JsonDeserializer<CellPositionList?>() {
         val node: JsonNode = p.codec.readTree(p)
 
         return if (node.isTextual) {
-            val cellPosition = CellPosition.fromString(node.asText())
-            if (cellPosition != null) CellPositionList(cellPosition) else null
+            CellPositionList.fromString(node.asText())
         } else if (node.isArray) {
             val cellPositions = node.mapNotNull { CellPosition.fromString(it.asText()) }
             if (cellPositions.isNotEmpty()) CellPositionList(*cellPositions.toTypedArray()) else null

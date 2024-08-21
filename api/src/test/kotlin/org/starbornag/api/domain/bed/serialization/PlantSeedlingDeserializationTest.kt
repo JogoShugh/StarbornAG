@@ -4,6 +4,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.starbornag.api.domain.bed.command.*
+import org.starbornag.api.domain.bed.command.BedCommand.*
 import java.time.Instant
 import java.util.*
 
@@ -17,7 +18,7 @@ class PlantSeedlingDeserializationTest {
         val plantType = "Tomato"
         val plantCultivar = "Dark Galaxy"
 
-        val expected = BedCommand.CellCommand.PlantSeedling(
+        val expected = CellCommand.PlantSeedling(
             id,
             date,
             plantType,
@@ -35,13 +36,13 @@ class PlantSeedlingDeserializationTest {
             }           
         """.trimIndent()
 
-        val actual = mapper.readValue(input, BedCommand.CellCommand.PlantSeedling::class.java)
+        val actual = mapper.readValue(input, CellCommand.PlantSeedling::class.java)
         assertEqual(actual, expected)
     }
 
     private fun assertEqual(
-        actual: BedCommand.CellCommand.PlantSeedling,
-        expected: BedCommand.CellCommand.PlantSeedling
+        actual: CellCommand.PlantSeedling,
+        expected: CellCommand.PlantSeedling
     ) {
         // TODO there's gotta be cleaner way...
         val actJson = mapper.writeValueAsString(actual)

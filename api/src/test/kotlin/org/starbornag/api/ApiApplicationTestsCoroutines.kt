@@ -15,6 +15,7 @@ import org.springframework.restdocs.webtestclient.WebTestClientRestDocumentation
 import org.springframework.test.context.TestConstructor
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.starbornag.api.domain.bed.command.BedCommand
+import org.starbornag.api.domain.bed.command.BedCommand.*
 import org.starbornag.api.domain.bed.command.Dimensions
 import org.starbornag.api.rest.bed.*
 import java.net.URI
@@ -92,7 +93,7 @@ class ApiApplicationTestsCoroutines(
             mapOf(
                 1 to Date.from(Instant.now().minusSeconds(30L))
             ).forEach {
-                val waterBedCommand = BedCommand.CellCommand.Water(
+                val waterBedCommand = CellCommand.Water(
                     bedUuid,
                     it.value,
                     2.0

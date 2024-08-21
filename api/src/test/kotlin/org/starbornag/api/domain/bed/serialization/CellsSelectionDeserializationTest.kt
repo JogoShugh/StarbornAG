@@ -9,7 +9,7 @@ import org.starbornag.api.domain.bed.command.CellsSelection
 import org.starbornag.api.domain.bed.command.CellPosition.Companion.of
 import org.starbornag.api.domain.bed.command.CellRange
 
-class CellsSelectionDeserializerTest {
+class CellsSelectionDeserializationTest {
     private val mapper = jacksonObjectMapper()
 
     @Test

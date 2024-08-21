@@ -8,3 +8,5 @@ internal val cellPattern = compile("""([A-Za-z]+|\d+)[:\s,.]*(\d+)""")
 internal val cellRegex = cellPattern.toRegex()
 internal val rangeJoinPattern = compile(" *(?:to|-|,|through|until) *")
 internal val rangeRegex = Regex(cellPattern.pattern() + rangeJoinPattern.pattern() + cellPattern.pattern())
+internal val cellListPattern = cellPattern.pattern() + "(?:\\s+|,|\\t)+" + cellPattern.pattern() + "(?:\\s+|,|\\t)*(?:${cellPattern.pattern()})*"
+internal val cellListRegex = Regex(cellListPattern)

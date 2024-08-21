@@ -11,11 +11,11 @@ class BedCommandMapper(
 ) {
     companion object {
         private val pathToCommandTypeMap = mapOf(
-            "plant" to PlantSeedlingCommand::class,
-            "fertilize" to FertilizeCommand::class,
-            "water" to WaterCommand::class,
-            "mulch" to MulchCommand::class,
-            "harvest" to HarvestCommand::class
+            "plant" to CellCommand.PlantSeedling::class,
+            "fertilize" to CellCommand.Fertilize::class,
+            "water" to CellCommand.Water::class,
+            "mulch" to CellCommand.Mulch::class,
+            "harvest" to CellCommand.Harvest::class
         )
     }
 

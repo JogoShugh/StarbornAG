@@ -19,11 +19,11 @@ object ObjectMapperSingleton {
 
 private fun getSchema(action: String) : JsonSchema {
     val commandClass = when (action.lowercase()) { // Determine serializer based on action
-        "prepare" -> PrepareBedCommand::class.java
-        "plant" -> PlantSeedlingCommand::class.java
-        "fertilize" -> FertilizeCommand::class.java
-        "water" -> WaterCommand::class.java
-        "harvest" -> HarvestCommand::class.java
+        "prepare" -> PrepareBed::class.java
+        "plant" -> CellCommand.PlantSeedling::class.java
+        "fertilize" -> CellCommand.Fertilize::class.java
+        "water" -> CellCommand.Water::class.java
+        "harvest" -> CellCommand.Harvest::class.java
         else -> throw Exception("Unknown action type")
     }
 
@@ -71,10 +71,10 @@ open class BedResource<T>(val id: UUID) : RepresentationModel<BedResource<T>>() 
 
     fun includeSchemas() {
         _linksSchemas.putAll(mapOf(
-                "plant" to getDataClassText(PlantSeedlingCommand::class),
-                "water" to getDataClassText(WaterCommand::class),
-                "fertilize" to getDataClassText(FertilizeCommand::class),
-                "harvest" to getDataClassText(FertilizeCommand::class)
+                "plant" to getDataClassText(CellCommand.PlantSeedling::class),
+                "water" to getDataClassText(CellCommand.Water::class),
+                "fertilize" to getDataClassText(CellCommand.Fertilize::class),
+                "harvest" to getDataClassText(CellCommand.Fertilize::class)
             )
         )
     }

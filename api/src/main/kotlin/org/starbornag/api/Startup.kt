@@ -5,7 +5,7 @@ import org.springframework.context.ApplicationListener
 import org.springframework.stereotype.Component
 import org.starbornag.api.domain.bed.BedAggregate
 import org.starbornag.api.domain.bed.BedRepository
-import org.starbornag.api.domain.bed.command.BedCommand.PrepareBedCommand
+import org.starbornag.api.domain.bed.command.BedCommand.PrepareBed
 import org.starbornag.api.domain.bed.command.Dimensions
 import java.util.*
 
@@ -15,13 +15,13 @@ class Startup : ApplicationListener<ApplicationReadyEvent> {
     override fun onApplicationEvent(event: ApplicationReadyEvent) {
         println("onApplicationEvent!!!")
         arrayOf(
-            PrepareBedCommand(
+            PrepareBed(
                 UUID.fromString("c0e75294-4b1e-4664-9037-3ca56f41ac5a"),
                 "Earth",
                 Dimensions(10, 5, 1),
                 1
             ),
-            PrepareBedCommand(
+            PrepareBed(
                 UUID.fromString("2fbda883-d49d-4067-8e16-2b04cc523111"),
                 "Jupiter",
                 Dimensions(10, 5, 2),

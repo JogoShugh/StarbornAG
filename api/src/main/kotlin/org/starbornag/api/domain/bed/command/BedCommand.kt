@@ -2,51 +2,56 @@ package org.starbornag.api.domain.bed.command
 
 import java.util.*
 
-sealed class BedCommand(row: Int? = null, column: Int? = null) : BedId {
-    val cells: CellsSelection? = null
-    data class PrepareBedCommand(
+sealed class BedCommand : BedId {
+    data class PrepareBed(
         override val bedId: UUID,
         val name: String,
         val dimensions: Dimensions,
         val cellBlockSize: Int = 1
     ) : BedCommand()
 
-    data class PlantSeedlingCommand(
-        override val bedId: UUID,
-        val started: Date,
-//        val row: Int,
-//        val column: Int,
-        val plantType: String,
-        val plantCultivar: String,
-        val location: CellsSelection
-    ) : BedCommand()
+    sealed class CellCommand() : BedCommand(), BedId {
+        abstract val location: CellsSelection?
 
-    data class FertilizeCommand(
-        override val bedId: UUID,
-        val started: Date,
-        val volume: Double,
-        val fertilizer: String
-    ) : BedCommand()
+        data class PlantSeedling(
+            override val bedId: UUID,
+            val started: Date,
+            val plantType: String,
+            val plantCultivar: String,
+            override val location: CellsSelection? = null
+        ) : CellCommand()
 
-    data class MulchCommand(
-        override val bedId: UUID,
-        val started: Date,
-        val volume: Double,
-        val material: String
-    ) : BedCommand()
+        data class Fertilize(
+            override val bedId: UUID,
+            val started: Date,
+            val volume: Double,
+            val fertilizer: String,
+            override val location: CellsSelection? = null
+        ) : CellCommand()
 
-    data class WaterCommand(
-        override val bedId: UUID,
-        val started: Date,
-        val volume: Double
-    ) : BedCommand()
+        data class Mulch(
+            override val bedId: UUID,
+            val started: Date,
+            val volume: Double,
+            val material: String,
+            override val location: CellsSelection? = null
+        ) : CellCommand()
 
-    data class HarvestCommand(
-        override val bedId: UUID,
-        val started: Date,
-        val plantType: String,
-        val plantCultivar: String,
-        val quantity: Int? = null,
-        val weight: Double? = null
-    ) : BedCommand()
+        data class Water(
+            override val bedId: UUID,
+            val started: Date,
+            val volume: Double,
+            override val location: CellsSelection? = null
+        ) : CellCommand()
+
+        data class Harvest(
+            override val bedId: UUID,
+            val started: Date,
+            val plantType: String,
+            val plantCultivar: String,
+            val quantity: Int? = null,
+            val weight: Double? = null,
+            override val location: CellsSelection? = null
+        ) : CellCommand()
+    }
 }

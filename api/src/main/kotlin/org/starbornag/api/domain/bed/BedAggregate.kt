@@ -36,8 +36,9 @@ class BedAggregate(
     // Generic command handler dispatcher
     suspend fun <T : BedCommand> execute(command: T, sseEventBus: SseEventBus) {
         when (command) {
-            is PlantSeedlingCommand -> execute(command, sseEventBus)
-            else ->  dispatchCommand(command, sseEventBus)
+            is CellCommand.PlantSeedling -> execute(command, sseEventBus)
+            is CellCommand -> dispatchCommand(command, sseEventBus)
+            else -> TODO()
         }
     }
 
@@ -53,19 +54,15 @@ class BedAggregate(
 //    }
 
     // Concrete command handlers
-    private suspend fun execute(command: PlantSeedlingCommand, sseEventBus: SseEventBus) {
+    private suspend fun execute(command: CellCommand.PlantSeedling, sseEventBus: SseEventBus) {
         // Adjust to be 1 based:
-        if (command.location != null) {
-            val rowCount = this.rows.count()
-            val columnCount = this.rows[0].cells.count()
-            dispatchToStreamingCells(
-                command, sseEventBus,
-                command.location.streamCellPositions(rowCount, columnCount)
-            )
-        }
-        else {
-            TODO()
-        }
+        val rowCount = this.rows.count()
+        val columnCount = this.rows[0].cells.count()
+        dispatchToStreamingCells(
+            command, sseEventBus,
+            // TODO deal with null:
+            command.location!!.streamCellPositions(rowCount, columnCount)
+        )
     }
 
     private suspend fun dispatchToStreamingCells(command: BedCommand, sseEventBus: SseEventBus, cellPositions: Sequence<CellPosition>) {
@@ -76,19 +73,19 @@ class BedAggregate(
             cellAg.execute(command, sseEventBus)
         }
     }
-    private suspend fun dispatchCommand(command: BedCommand, sseEventBus: SseEventBus) {
-        val cells = command.cells
+    private suspend fun dispatchCommand(command: CellCommand, sseEventBus: SseEventBus) {
+        val cells = command.location
 
-        val row = cells!!.row
-        val column = cells.column
-        val cell = cells.cell
-        when {
-            cells.isSingleCell -> dispatchToSingleCell(row!!, column!!, command, sseEventBus)
-            cells.isSingleRow-> dispatchToSingleRow(row!!, command, sseEventBus)
-            cells.isSingleColumn-> dispatchToSingleColumn(column!!, command, sseEventBus)
-            //command.isForRowWithCellSpan -> dispatchToRowWithCellSpan(row!!, cellSpan!!, command, sseEventBus)
-            else -> dispatchCommandToAllCells(command, sseEventBus)
-        }
+//        val row = cells.row
+//        val column = cells.column
+//        val cell = cells.cell
+//        when {
+//            cells.isSingleCell -> dispatchToSingleCell(row!!, column!!, command, sseEventBus)
+//            cells.isSingleRow-> dispatchToSingleRow(row!!, command, sseEventBus)
+//            cells.isSingleColumn-> dispatchToSingleColumn(column!!, command, sseEventBus)
+//            //command.isForRowWithCellSpan -> dispatchToRowWithCellSpan(row!!, cellSpan!!, command, sseEventBus)
+//            else -> dispatchCommandToAllCells(command, sseEventBus)
+//        }
     }
 
 

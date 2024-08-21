@@ -21,6 +21,16 @@ class CellsSelectionDeserializerTest {
     }
 
     @Test
+    fun `deserializes cell list string`() {
+        val input = "\"A1 A2 B5\""
+        val expected = CellsSelection(cells =
+            CellPositionList(of("A1"), of("A2"), of("B5"))
+        )
+        val actual = mapper.readValue(input, CellsSelection::class.java)
+        assertEqual(actual, expected)
+    }
+
+    @Test
     fun `deserializes cell range string`() {
         val input = "\"A1 to B2\""
         val expected = CellsSelection(cellRange = CellRange.of("A1", "B2"))

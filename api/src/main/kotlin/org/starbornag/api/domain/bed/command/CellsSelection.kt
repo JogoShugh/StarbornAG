@@ -2,7 +2,9 @@ package org.starbornag.api.domain.bed.command
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonInclude
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 class CellsSelection(
     val row: Int? = null,
     val column: Int? = null,
@@ -15,15 +17,16 @@ class CellsSelection(
     companion object {
         @JvmStatic
         @JsonCreator
-        fun fromString(value: String): CellsSelection? {
+        fun fromString(value: String): CellsSelection {
             // Test CellRange first, since it would also match for CellPosition
             return if (CellRange.isMatch(value)) {
                 CellsSelection(cellRange = CellRange.fromString(value))
-            // TODO: we could add one for CellPositionList as a secondary match, if needed
+            } else if (CellPositionList.isMatch(value)) {
+                CellsSelection(cells = CellPositionList.fromString(value))
             } else if (CellPosition.isMatch(value)) {
                 CellsSelection(cell = CellPosition.fromString(value))
             } else {
-                null
+                TODO()
             }
         }
     }
@@ -45,6 +48,14 @@ class CellsSelection(
 
     @get:JsonIgnore
     private val isRangeByCellRange get() = hasCellRange && !hasCellStart && !hasCellEnd
+
+    private val hasRow get() = row != null
+    private val hasColumn get() = column != null
+    private val hasCell get() = cell != null
+    private val hasCells get() = cells != null
+    private val hasCellStart get() = cellStart != null
+    private val hasCellEnd get() = cellEnd != null
+    private val hasCellRange get() = cellRange != null
 
     suspend fun streamCellPositions(rowCount: Int, columnCount: Int): Sequence<CellPosition> {
         if (isCellList) {
@@ -84,12 +95,4 @@ class CellsSelection(
             }
         }
     }
-
-    private val hasRow get() = row != null
-    private val hasColumn get() = column != null
-    private val hasCell get() = cell != null
-    private val hasCells get() = cells != null
-    private val hasCellStart get() = cellStart != null
-    private val hasCellEnd get() = cellEnd != null
-    private val hasCellRange get() = cellRange != null
 }

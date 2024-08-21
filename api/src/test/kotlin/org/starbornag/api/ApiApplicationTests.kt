@@ -57,7 +57,7 @@ class ApiApplicationTests(
     fun `Create bed of 8 feet by 4 feet and plant, water, and fertilize it`() {
         val bedLength = 8
         val bedHWidth = 4
-        val prepareBedCommand = PrepareBedCommand(
+        val prepareBed = PrepareBed(
             UUID.randomUUID(),
             "Earth",
             Dimensions(bedLength, bedHWidth),
@@ -67,7 +67,7 @@ class ApiApplicationTests(
         postCommand<BedResourceWithCurrentState>(
             URI.create("/api/beds"),
             "prepare-bed",
-            prepareBedCommand,
+            prepareBed,
             HttpStatus.CREATED
         ) { it ->
             printResponse(it)
@@ -93,7 +93,7 @@ class ApiApplicationTests(
             postCommand<BedResourceWithCurrentState>(
                 plantLink,
                 "plant-seedling",
-                PlantSeedlingCommand(
+                CellCommand.PlantSeedling(
                     bedUuid,
                     Date.from(Instant.now()),
                     "Tomato",
@@ -105,7 +105,7 @@ class ApiApplicationTests(
             postCommand<BedResourceWithCurrentState>(
                 plantLink,
                 "plant-seedling",
-                PlantSeedlingCommand(
+                CellCommand.PlantSeedling(
                     bedUuid,
                     Date.from(Instant.now()),
                     "Basil",
@@ -119,7 +119,7 @@ class ApiApplicationTests(
                 2 to Date.from(Instant.now().minus(2L, ChronoUnit.DAYS)),
                 3 to Date.from(Instant.now().minus(300L, ChronoUnit.HOURS))
             ).forEach {
-                val waterBedCommand = WaterCommand(
+                val waterBedCommand = CellCommand.Water(
                     bedUuid,
                     it.value,
                     2.0
@@ -134,7 +134,7 @@ class ApiApplicationTests(
             postCommand<BedResourceWithCurrentState>(
                 fertilizeLink,
                 "fertilize-bed",
-                FertilizeCommand(
+                CellCommand.Fertilize(
                     bedUuid,
                     Date.from(Instant.now().minus(2L, ChronoUnit.HOURS)),
                     1.0,
@@ -145,7 +145,7 @@ class ApiApplicationTests(
             postCommand<BedResourceWithCurrentState>(
                 harvestLink,
                 "harvest-bed",
-                HarvestCommand(
+                CellCommand.Harvest(
                     bedUuid,
                     Date.from(Instant.now().minus(1L, ChronoUnit.HOURS)),
                     "Tomato",
@@ -157,7 +157,7 @@ class ApiApplicationTests(
             postCommand<BedResourceWithCurrentState>(
                 harvestLink,
                 "harvest-bed",
-                HarvestCommand(
+                CellCommand.Harvest(
                     bedUuid,
                     Date.from(Instant.now().minus(1L, ChronoUnit.HOURS)),
                     "Basil",

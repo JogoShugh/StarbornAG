@@ -44,7 +44,7 @@ class ApiApplicationTestsCoroutines(
     fun `Create bed of 8 feet by 4 feet and plant, water, and fertilize it`() {
         val bedLength = 8
         val bedHWidth = 4
-        val prepareBedCommand = BedCommand.PrepareBedCommand(
+        val prepareBed = BedCommand.PrepareBed(
             UUID.randomUUID(),
             "Earth",
             Dimensions(bedLength, bedHWidth),
@@ -54,7 +54,7 @@ class ApiApplicationTestsCoroutines(
         postCommand<BedResourceWithCurrentState>(
             URI.create("/api/beds"),
             "prepare-bed",
-            prepareBedCommand,
+            prepareBed,
             HttpStatus.CREATED
         ) { it ->
             //printResponse(it)
@@ -92,7 +92,7 @@ class ApiApplicationTestsCoroutines(
             mapOf(
                 1 to Date.from(Instant.now().minusSeconds(30L))
             ).forEach {
-                val waterBedCommand = BedCommand.WaterCommand(
+                val waterBedCommand = BedCommand.CellCommand.Water(
                     bedUuid,
                     it.value,
                     2.0

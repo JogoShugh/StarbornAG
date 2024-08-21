@@ -7,6 +7,7 @@ import org.starbornag.api.domain.bed.command.serialization.CellPositionListDeser
 @JsonDeserialize(using = CellPositionListDeserializer::class)
 class CellPositionList(vararg initialValues: CellPosition) : List<CellPosition> by initialValues.toList() {
     companion object {
+        fun isMatch(input: String) = cellListRegex.matchEntire(input.trim()) != null
         @JvmStatic
         @JsonCreator
         fun fromString(value: String) : CellPositionList? {

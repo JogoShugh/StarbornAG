@@ -21,11 +21,11 @@ class BedCommandSchemaQueryHandler(
         @PathVariable action: String
     ): ResponseEntity<JsonSchema> {
         val commandClass = when (action.lowercase()) { // Determine serializer based on action
-            "prepare" -> PrepareBedCommand::class.java
-            "plant" -> PlantSeedlingCommand::class.java
-            "fertilize" -> FertilizeCommand::class.java
-            "water" -> WaterCommand::class.java
-            "harvest" -> HarvestCommand::class.java
+            "prepare" -> PrepareBed::class.java
+            "plant" -> CellCommand.PlantSeedling::class.java
+            "fertilize" -> CellCommand.Fertilize::class.java
+            "water" -> CellCommand.Water::class.java
+            "harvest" -> CellCommand.Harvest::class.java
             else -> return ResponseEntity.notFound().build() // Handle invalid action
         }
 

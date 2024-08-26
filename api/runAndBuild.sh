@@ -2,4 +2,4 @@
 
 ./gradlew clean build
 docker build -t starborn .
-docker run -p 8080:8080 starborn
+docker run --network starbornag-network -p 8080:8080 starborn

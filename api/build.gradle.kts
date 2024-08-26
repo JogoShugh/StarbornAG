@@ -6,7 +6,6 @@ plugins {
 	id("org.asciidoctor.jvm.convert") version "3.3.2"
 	kotlin("jvm") version "1.9.23"
 	kotlin("plugin.spring") version "1.9.23"
-	//kotlin("plugin.serialization") version "2.0.10"
 }
 
 group = "org.starbornag"
@@ -18,6 +17,11 @@ java {
 
 repositories {
 	mavenCentral()
+	repositories {
+		maven {
+			url = uri("https://oss.sonatype.org/content/repositories/snapshots")
+		}
+	}
 }
 
 extra["snippetsDir"] = file("build/generated-snippets")
@@ -32,17 +36,19 @@ dependencies {
 	implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-	//implementation("org.jetbrains.kotlinx:kotlinx-serialization-json")
 	implementation("com.squareup.moshi:moshi:1.15.1")
 	implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
 	implementation("org.springframework.boot:spring-boot-starter-hateoas")
 	implementation("com.github.marlonlom:timeago")
 	implementation("com.fasterxml.jackson.module:jackson-module-jsonSchema-jakarta")
 	implementation("ch.rasc:sse-eventbus:2.0.0")
+	implementation("com.eventstore:db-client-java:5.4.1")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.restdocs:spring-restdocs-webtestclient")
 	testImplementation("com.willowtreeapps.assertk:assertk:0.28.1")
+
+
 }
 
 springBoot {

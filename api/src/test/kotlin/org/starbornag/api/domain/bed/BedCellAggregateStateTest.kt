@@ -42,9 +42,7 @@ class BedCellAggregateStateTest {
                 "bedCellId": "$cellId",
                 "started": 1724331019443,
                 "volume": 2,
-                "ended": 1724763019443,
-                "startedDescription": "5 days ago",
-                "endDescription": "5 days ago"
+                "ended": 1724763019443
               },
               "fertilized": null,
               "mulched": null,
@@ -63,7 +61,3 @@ class BedCellAggregateStateTest {
         )
     }
 }
-
-// TODO get this working:
-//          val repo = EventStoreRepository()
-//          repo.append(cellId, "BedCellAggregate", events.toList(), 1)

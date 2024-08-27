@@ -1,5 +1,6 @@
 package org.starbornag.api.domain.bed
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.annotation.JsonTypeName
 import com.github.marlonlom.utilities.timeago.TimeAgo
@@ -14,9 +15,11 @@ sealed class BedEvent(
     val started : Date,
     val ended: Date = started
 ) {
+    @get:JsonIgnore
     val startedDescription : String
         get() = TimeAgo.using(started.time)
 
+    @get:JsonIgnore
     val endDescription : String
         get() = TimeAgo.using(ended.time)
 }

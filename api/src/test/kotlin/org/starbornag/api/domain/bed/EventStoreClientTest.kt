@@ -1,7 +1,8 @@
 package org.starbornag.api.domain.bed
 
 import com.eventstore.dbclient.EventData
-import net.bytebuddy.implementation.bind.annotation.IgnoreForBinding
+import com.fasterxml.jackson.annotation.JsonTypeName
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.starbornag.api.Connected

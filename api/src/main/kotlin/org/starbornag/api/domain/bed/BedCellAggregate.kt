@@ -20,6 +20,12 @@ data class Planting(
         if (isEmpty()) "" else "$plantType - $plantCultivar"
 }
 
+data class Harvest(
+    val planting : Planting,
+    val quantity: Int? = null,
+    val weight: Double? = null
+)
+
 class BedCellAggregate(
     val parentBedId: UUID,
     val id: UUID = UUID.randomUUID(),

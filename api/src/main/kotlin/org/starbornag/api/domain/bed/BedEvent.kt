@@ -24,7 +24,7 @@ sealed class BedEvent(
         get() = TimeAgo.using(ended.time)
 }
 
-@JsonTypeName("planted") // Add subtype names for each subclass
+@JsonTypeName("planted")
 class BedCellPlanted(
     bedId: UUID,
     bedCellId: UUID,
@@ -33,7 +33,7 @@ class BedCellPlanted(
     val plantCultivar: String
 ) : BedEvent(bedId, bedCellId, started)
 
-@JsonTypeName("watered") // Add subtype names for each subclass
+@JsonTypeName("watered")
 class BedCellWatered(
     bedId: UUID,
     bedCellId: UUID,

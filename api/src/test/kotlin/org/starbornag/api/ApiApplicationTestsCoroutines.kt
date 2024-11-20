@@ -48,7 +48,7 @@ class ApiApplicationTestsCoroutines(
         val prepareBed = BedCommand.PrepareBed(
             UUID.randomUUID(),
             "Earth",
-            Dimensions(bedLength, bedHWidth),
+            Dimensions(bedHWidth, bedLength),
             1
         )
 

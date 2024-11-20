@@ -60,7 +60,7 @@ class ApiApplicationTests(
         val prepareBed = PrepareBed(
             UUID.randomUUID(),
             "Earth",
-            Dimensions(bedLength, bedHWidth),
+            Dimensions(bedHWidth, bedLength),
             1
         )
 

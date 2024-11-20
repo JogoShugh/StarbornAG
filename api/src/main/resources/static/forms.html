@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JSON Forms CDN Example</title>
+    <!-- Load React and ReactDOM -->
+    <script src="https://unpkg.com/react@17.0.2/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@17.0.2/umd/react-dom.production.min.js" crossorigin></script>
+
+    <!-- Load Material UI dependencies -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <script src="https://unpkg.com/@mui/material@5.11.0/umd/material-ui.production.min.js" crossorigin></script>
+
+    <!-- Load JSON Forms libraries -->
+    <script src="https://unpkg.com/@jsonforms/core@3.0.0/dist/jsonforms-core.js" crossorigin></script>
+    <script src="https://unpkg.com/@jsonforms/react@3.0.0/dist/jsonforms-react.js" crossorigin></script>
+    <script src="https://unpkg.com/@jsonforms/material-renderers@3.0.0/dist/jsonforms-material-renderers.js" crossorigin></script>
+</head>
+<body>
+<div id="app"></div>
+<script>
+    const schema = {
+      "type": "object",
+      "title": "Bed",
+      "properties": {
+        "bedId": {
+          "title": "Bed ID",
+          "type": "string",
+          "format": "uuid"
+        },
+        "cellBlockSize": {
+          "type": "integer"
+        },
+        "dimensions": {
+          "type": "object",
+          "properties": {
+            "columns": {
+              "type": "integer"
+            },
+            "height": {
+              "type": "integer"
+            },
+            "rows": {
+              "type": "integer"
+            }
+          }
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    };
+
+    const data = {
+      "bedId": "2fbda883-d49d-4067-8e16-2b04cc523111",
+      "name": "Venus",
+      "dimensions": {
+        "columns": 8,
+        "height": 1,
+        "rows": 4
+      }
+    };
+
+    const uischema = {
+      "type": "Group",
+      "elements": [
+        {
+          "type": "Control",
+          "scope": "#/properties/bedId"
+        },
+        {
+          "type": "Control",
+          "scope": "#/properties/name"
+        },
+        {
+          "type": "Control",
+          "scope": "#/properties/dimensions/properties/columns"
+        },
+        {
+          "type": "Control",
+          "scope": "#/properties/dimensions/properties/height"
+        },
+        {
+          "type": "Control",
+          "scope": "#/properties/dimensions/properties/rows"
+        }
+      ]
+    };
+
+    const app = document.getElementById('app');
+
+    // Render JSON Forms using React
+    const render = () => {
+      ReactDOM.render(
+        React.createElement(JsonFormsReactProvider, {
+          schema,
+          uischema,
+          data,
+          renderers: JsonFormsMaterialRenderers.materialRenderers,
+        }),
+        app
+      );
+    };
+
+    // Wait for the JSON Forms library to load (adjust the timeout if needed)
+    setTimeout(render, 500);
+</script>
+</body>
+</html>

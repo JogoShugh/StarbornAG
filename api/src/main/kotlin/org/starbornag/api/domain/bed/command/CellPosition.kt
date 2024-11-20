@@ -1,10 +1,7 @@
 package org.starbornag.api.domain.bed.command
 
 import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize
-//import org.starbornag.api.domain.bed.command.serialization.CellPositionDeserializer
 
-//@JsonDeserialize(using = CellPositionDeserializer::class)
 data class CellPosition(
     val row: Int,
     val column: Int) {
@@ -43,5 +40,28 @@ data class CellPosition(
             }
             return null
         }
+
+        private val offsets = listOf(
+            "nw" to (-1 to -1),
+            "n" to (-1 to 0),
+            "ne" to (-1 to 1),
+            "w" to (0 to -1),
+            "e" to (0 to 1),
+            "sw" to (1 to -1),
+            "s" to (1 to 0),
+            "se" to (1 to 1)
+        )
     }
+
+    fun neighbors(rows: Int, cols: Int) = offsets.mapNotNull { (direction, offsets) ->
+        val (rowOffset, colOffset) = offsets
+        val newRow = row + rowOffset
+        val newCol = column + colOffset
+        if (newRow in 1 .. rows && newCol in 1 .. cols)
+            direction to CellPosition(newRow, newCol) else null
+    }
+
 }
+
+fun List<Pair<String, CellPosition>>.hasDirection(direction: String) =
+    this.any { (directionName, _ ) -> directionName == direction }

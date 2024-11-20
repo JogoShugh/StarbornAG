@@ -7,7 +7,9 @@ import com.fasterxml.jackson.annotation.JsonInclude
 @JsonInclude(JsonInclude.Include.NON_NULL)
 class CellsSelection(
     val row: Int? = null,
+    val rows: List<Int>? = null,
     val column: Int? = null,
+    val columns: List<Int>? = null,
     val cell: CellPosition? = null,
     val cells: CellPositionList? = null,
     val cellRange: CellRange? = null,
@@ -41,16 +43,15 @@ class CellsSelection(
     val isSingleRow get() = hasRow && !hasColumn && !hasCell && !hasCells && !hasCellStart && !hasCellEnd && !hasCellRange
 
     @get:JsonIgnore
-    val isCellList get() = hasCells && !hasColumn && !hasRow && !hasCell && !hasCellStart && !hasCellEnd && !hasCellRange
-
-    @get:JsonIgnore
     private val isRangeByCellStartAndEnd get() = !hasCellRange && hasCellStart && hasCellEnd
 
     @get:JsonIgnore
     private val isRangeByCellRange get() = hasCellRange && !hasCellStart && !hasCellEnd
 
     private val hasRow get() = row != null
+    private val hasRows get() = rows != null
     private val hasColumn get() = column != null
+    private val hasColumns get() = columns != null
     private val hasCell get() = cell != null
     private val hasCells get() = cells != null
     private val hasCellStart get() = cellStart != null
@@ -58,39 +59,56 @@ class CellsSelection(
     private val hasCellRange get() = cellRange != null
 
     suspend fun streamCellPositions(rowCount: Int, columnCount: Int): Sequence<CellPosition> {
-        if (isCellList) {
-            return sequence {
-                cells!!.forEach {
+        return sequence {
+            if (hasCells) {
+                cells?.forEach {
                     yield(it)
                 }
             }
-        }
 
-        val (start, end) = when {
-            isRangeByCellRange -> cellRange!!
-            isRangeByCellStartAndEnd -> CellRange(cellStart!!, cellEnd!!)
-            else -> when {
-                isSingleCell -> CellRange(cell!!, cell)
-                isSingleColumn -> CellRange(
-                    CellPosition(1, column!!),
-                    CellPosition(rowCount, column)
-                )
-
-                isSingleRow -> CellRange(
-                    CellPosition(row!!, 1),
-                    CellPosition(row, columnCount)
-                )
-
-                else -> {
-                    TODO()
+            if (hasRows) {
+                rows?.forEach { row ->
+                    for (col in 1..columnCount)
+                        yield(CellPosition(row, col))
                 }
             }
-        }
 
-        return sequence {
-            for (row in start.row..end.row) {
-                for (col in start.column..end.column) {
-                    yield(CellPosition(row, col))
+            if (hasColumns) {
+                columns?.forEach { column ->
+                    for (row in 1..rowCount)
+                        yield(CellPosition(row, column))
+                }
+            }
+
+            if (hasCell) {
+                yield(cell!!)
+            }
+
+            val range = when {
+                isRangeByCellRange -> cellRange!!
+                isRangeByCellStartAndEnd -> CellRange(cellStart!!, cellEnd!!)
+                else -> when {
+                    hasColumn -> CellRange(
+                        CellPosition(1, column!!),
+                        CellPosition(rowCount, column)
+                    )
+                    hasRow -> CellRange(
+                        CellPosition(row!!, 1),
+                        CellPosition(row, columnCount)
+                    )
+
+                    else -> {
+                        null
+                    }
+                }
+            }
+
+            range?.let {
+                val (start, end) = range
+                for (row in start.row..end.row) {
+                    for (col in start.column..end.column) {
+                        yield(CellPosition(row, col))
+                    }
                 }
             }
         }

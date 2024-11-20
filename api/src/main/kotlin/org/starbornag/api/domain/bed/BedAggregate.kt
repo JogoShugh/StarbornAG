@@ -1,6 +1,5 @@
 package org.starbornag.api.domain.bed
 
-import ch.rasc.sse.eventbus.SseEventBus
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.starbornag.api.domain.bed.command.BedCommand
@@ -19,9 +18,9 @@ class BedAggregate(
         fun of(id: UUID, name: String, dimensions: Dimensions, cellBlockSize: Int): BedAggregate {
             val start = 1
             val rows =
-                start.rangeTo(dimensions.width).map {
-                    Row(start.rangeTo(dimensions.length / cellBlockSize).map {
-                        val bc = BedCellAggregate(id)
+                start.rangeTo(dimensions.rows).map { row ->
+                    Row(start.rangeTo(dimensions.columns / cellBlockSize).map { column ->
+                        val bc = BedCellAggregate(id, dimensions, CellPosition(row, column))
                         BedCellRepository.putBedCell(bc)
                         bc.id
                     })
@@ -34,10 +33,17 @@ class BedAggregate(
     // TODO plant seedling command is going NOWHERE. Why?
 
     // Generic command handler dispatcher
-    suspend fun <T : BedCommand> execute(command: T, sseEventBus: SseEventBus) {
+    suspend fun <T : BedCommand> execute(command: T, bedEventBus: IBedEventBus) {
         when (command) {
-            is CellCommand.PlantSeedling -> execute(command, sseEventBus)
-            is CellCommand -> dispatchCommand(command, sseEventBus)
+            is CellCommand.PlantSeedling -> execute(command, bedEventBus)
+            is CellCommand -> {
+                val rowCount = this.rows.count()
+                val columnCount = this.rows[0].cells.count()
+                when {
+                    command.location != null -> dispatchToStreamingCells(command, bedEventBus, command.location!!.streamCellPositions(rowCount, columnCount))
+                    else -> dispatchCommandToAllCells(command, bedEventBus)
+                }
+            }
             else -> TODO()
         }
     }
@@ -54,26 +60,26 @@ class BedAggregate(
 //    }
 
     // Concrete command handlers
-    private suspend fun execute(command: CellCommand.PlantSeedling, sseEventBus: SseEventBus) {
+    private suspend fun execute(command: CellCommand.PlantSeedling, bedEventBus: IBedEventBus) {
         // Adjust to be 1 based:
         val rowCount = this.rows.count()
         val columnCount = this.rows[0].cells.count()
         dispatchToStreamingCells(
-            command, sseEventBus,
+            command, bedEventBus,
             // TODO deal with null:
             command.location!!.streamCellPositions(rowCount, columnCount)
         )
     }
 
-    private suspend fun dispatchToStreamingCells(command: BedCommand, sseEventBus: SseEventBus, cellPositions: Sequence<CellPosition>) {
+    private suspend fun dispatchToStreamingCells(command: BedCommand, bedEventBus: IBedEventBus, cellPositions: Sequence<CellPosition>) {
         cellPositions.forEach {
             val (row, column) = it
             val cellId = this.rows[row-1].cells[column - 1]
             val cellAg = BedCellRepository.getBedCell(cellId)
-            cellAg.execute(command, sseEventBus)
+            cellAg.execute(command, bedEventBus)
         }
     }
-    private suspend fun dispatchCommand(command: CellCommand, sseEventBus: SseEventBus) {
+    private suspend fun dispatchCommand(command: CellCommand, bedEventBus: IBedEventBus) {
         val cells = command.location
 
 //        val row = cells.row
@@ -105,7 +111,7 @@ class BedAggregate(
     private suspend fun dispatchToSingleColumn(
         cell: Int,
         command: BedCommand,
-        sseEventBus: SseEventBus
+        bedEventBus: IBedEventBus
     ) {
         val cellIndex = cell - 1
         coroutineScope {
@@ -113,7 +119,7 @@ class BedAggregate(
                 launch {
                     val cellId = it.cells[cellIndex]
                     val cellAg = BedCellRepository.getBedCell(cellId)
-                    cellAg.execute(command, sseEventBus)
+                    cellAg.execute(command, bedEventBus)
                 }
             }
         }
@@ -122,14 +128,14 @@ class BedAggregate(
     private suspend fun dispatchToSingleRow(
         row: Int,
         command: BedCommand,
-        sseEventBus: SseEventBus
+        bedEventBus: IBedEventBus
     ) {
         val rowIndex = row - 1
         coroutineScope {
             rows[rowIndex].cells.forEach {
                 launch {
                     val cellAg = BedCellRepository.getBedCell(it)
-                    cellAg.execute(command, sseEventBus)
+                    cellAg.execute(command, bedEventBus)
                 }
             }
         }
@@ -139,7 +145,7 @@ class BedAggregate(
         row: Int,
         cell: Int,
         command: BedCommand,
-        sseEventBus: SseEventBus
+        bedEventBus: IBedEventBus
     ) {
         val rowIndex = row - 1
         val cellIndex = cell - 1
@@ -148,18 +154,18 @@ class BedAggregate(
         coroutineScope {
             launch {
                 val cellAg = BedCellRepository.getBedCell(cellIem)
-                cellAg.execute(command, sseEventBus)
+                cellAg.execute(command, bedEventBus)
             }
         }
     }
 
-    private suspend fun dispatchCommandToAllCells(command: BedCommand, sseEventBus: SseEventBus) {
+    private suspend fun dispatchCommandToAllCells(command: BedCommand, bedEventBus: IBedEventBus) {
         coroutineScope {
             rows.forEach { row ->
                 row.cells.forEach { cellId ->
                     launch {
                         val cell = BedCellRepository.getBedCell(cellId)
-                        cell.execute(command, sseEventBus)
+                        cell.execute(command, bedEventBus)
                     }
                 }
             }

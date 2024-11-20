@@ -1,0 +1,201 @@
+body {
+    background: linear-gradient(135deg, #1e5e2e, DarkGreen); /* Diagonal gradient from dark green to lighter green */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Ensures the grid is centered vertically within the full viewport height */
+    margin: 0;
+    text-align: center; /* This keeps inline elements like your text centered */
+}
+
+.centered-container {
+    display: flex;
+    flex-direction: column; /* Stack the label and grid vertically */
+    justify-content: center; /* Center the content vertically */
+    align-items: center; /* Center the content horizontally */
+    height: 100vh; /* Make sure it's vertically centered in the viewport */
+}
+
+.garden-name {
+    font-family: 'Trebuchet MS', serif; /* Classic serif font, slightly rustic */
+    font-size: 2.0rem; /* Large enough to stand out */
+    color: #4B2E1A; /* Earthy green color */
+    text-align: center;
+    background: linear-gradient(
+      90deg,
+      #603913 0%,   /* Dark brown for belts */
+      #c09d7a 25%,  /* Light brown for zones */
+      #f0d9b5 50%,  /* Creamy white for light zones */
+      #b5651d 75%,  /* Reddish brown for prominent belts */
+      #f5f5f5 100%  /* Lighter white for a top zone */
+    );
+    padding: 8px 12px;
+    border: 3px solid #8B4513; /* Thin dark brown border to mimic soil edges */
+    border-radius: 8px; /* Smooth rounded corners for a friendly look */
+    box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.3); /* Soft shadow for a subtle pop */
+    text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
+    display: inline-block;
+}
+
+.grid-container {
+    display: grid;
+    border: 4px solid;
+    border-image: linear-gradient(45deg, #8B4513, #CD853F, #D2691E, #8B4513) 10;
+    background-color: #F5DEB3; /* Light wood background color */
+    border-radius: 4px; /* Slight rounding for more natural look */
+    width: fit-content;
+    margin: 0 auto; /* This centers the grid horizontally */
+}
+
+.grid-solo {
+    width: 400px;
+    height: 400px;
+    background-color: #e0ffe0;
+    border: 4px solid;
+    border-image: linear-gradient(45deg, #8B4513, #CD853F, #D2691E, #8B4513) 10;
+    border-radius: 4px; /* Slight rounding for more natural look */
+    background: radial-gradient(circle, #4E3629, #3B2C21, #1F140E);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5),
+                inset 0 0 20px rgba(60, 40, 20, 0.7),
+                inset 0 0 30px rgba(30, 15, 5, 0.5);
+    text-align: center;
+    box-sizing: border-box; /* Include border in width/height calculation */
+}
+
+.arrow {
+  display: inline-block;
+  font-size: 50pt;
+  position: relative;
+}
+
+.arrow.nw::before {
+  content: "⬆️";
+  transform: rotate(315deg);
+  display: block;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+.arrow.n::before {
+  content: "⬆️";
+  transform: rotate(0deg);
+  display: block;
+  position: absolute;
+  bottom: 0;
+  left: 42%;
+}
+
+.arrow.ne::before {
+  content: "⬆️";
+  transform: rotate(45deg);
+  display: block;
+  position: absolute;
+  bottom: 0;
+}
+
+.arrow.w::before {
+  content: "⬆️";
+  transform: rotate(270deg);
+  display: block;
+  position: absolute;
+  right: 10pt;
+  top: 42%;
+}
+
+.arrow.e::before {
+  content: "⬆️";
+  transform: rotate(90deg);
+  display: block;
+  position: absolute;
+  top: 42%;
+  left: 10pt;
+}
+
+.arrow.se::before {
+  content: "⬆️";
+  transform: rotate(135deg);
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.arrow.s::before {
+  content: "⬆️";
+  transform: rotate(180deg);
+  display: block;
+}
+
+.arrow.sw::before {
+  content: "⬆️";
+  transform: rotate(225deg);
+  display: block;
+  position: absolute;
+  right: 0;
+}
+
+.grid-item {
+    width: 75px;
+    height: 75px;
+    background-color: #e0ffe0;
+    border: 4px solid;
+    border-image: linear-gradient(45deg, #8B4513, #CD853F, #D2691E, #8B4513) 10;
+    border-radius: 4px; /* Slight rounding for more natural look */
+    background: radial-gradient(circle, #4E3629, #3B2C21, #1F140E);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5),
+                inset 0 0 20px rgba(60, 40, 20, 0.7),
+                inset 0 0 30px rgba(30, 15, 5, 0.5);
+    text-align: center;
+    box-sizing: border-box; /* Include border in width/height calculation */
+}
+
+.grid-item .plant {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 80%;
+    height: 80%;
+}
+
+.grid-item .events {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 20%;
+}
+
+.plant-icon {
+    font-size: 24pt;
+}
+
+@keyframes fade-in {
+ from { opacity: 0; }
+}
+
+@keyframes fade-out {
+ to { opacity: 0; }
+}
+
+@keyframes slide-from-right {
+ from { transform: translateX(90px); }
+}
+
+@keyframes slide-to-left {
+ to { transform: translateX(-90px); }
+}
+
+/* define animations for the old and new content */
+::view-transition-old(slide-it) {
+ animation: 180ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
+ 600ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
+}
+::view-transition-new(slide-it) {
+ animation: 420ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
+ 600ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+}
+
+/* tie the view transition to a given CSS class */
+.sample-transition {
+   view-transition-name: slide-it;
+}

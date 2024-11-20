@@ -13,23 +13,23 @@ import java.util.*
 class Startup : ApplicationListener<ApplicationReadyEvent> {
 
     override fun onApplicationEvent(event: ApplicationReadyEvent) {
-        println("onApplicationEvent!!!")
         arrayOf(
             PrepareBed(
                 UUID.fromString("c0e75294-4b1e-4664-9037-3ca56f41ac5a"),
                 "Earth",
-                Dimensions(10, 5, 1),
+                Dimensions(5, 10, 1),
                 1
             ),
             PrepareBed(
                 UUID.fromString("2fbda883-d49d-4067-8e16-2b04cc523111"),
                 "Jupiter",
-                Dimensions(10, 5, 2),
+                Dimensions(5, 10, 2),
                 1
             )
         ).forEach {
             val bed = BedAggregate.of(it.bedId, it.name, it.dimensions, it.cellBlockSize)
             println("The bed: $bed")
+            println("\t${bed.name} : ${bed.id}")
             BedRepository.addBed(bed)
         }
     }

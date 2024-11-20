@@ -1,0 +1,7 @@
+#!/bin/sh
+
+bed=2fbda883-d49d-4067-8e16-2b04cc523111
+url="$API/$bed/negotiable"
+#curl -H "Accept: text/html" $url 
+curl -H "Accept: application/json" $url 
+

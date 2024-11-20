@@ -6,6 +6,7 @@ import java.util.*
 data class BedResourceCell(
     val bedCellId: UUID,
     val planting: Planting,
+    val events: List<BedEvent>,
     val lastWatering: BedCellWatered?,
     val lastFertilization: BedFertilized?,
     val lastHarvest: BedHarvested?
@@ -17,15 +18,14 @@ data class BedResourceRow(
 
 class BedResourceWithCurrentState(id: UUID,
                                   val name: String,
-                                  val rows: List<BedResourceRow>
-//                                  ,
-//                                  waterings: List<BedWatered>?,
+                                  val rows: List<BedResourceRow>,
+//                                  waterings: List<BedCellWatered>?,
 //                                  fertilizations: List<BedFertilized>?,
 //                                  harvestings: List<BedHarvested>?
     ) : BedResource<BedResourceWithCurrentState>(id) {
     companion object {
         fun from(bed: BedAggregate) = BedResourceWithCurrentState(
-            bed.id,
+            bed.id, //28453a3c-ef59-40fa-a31c-9b30ae938b9e
             bed.name,
             bed.rows.map {
                 BedResourceRow(it.cells.map { id ->
@@ -33,6 +33,7 @@ class BedResourceWithCurrentState(id: UUID,
                     BedResourceCell(
                         cell.id,
                         cell.planting,
+                        cell.events,
                         cell.waterings.lastOrNull(),
                         cell.fertilizations.lastOrNull(),
                         cell.harvests.lastOrNull()
@@ -42,7 +43,7 @@ class BedResourceWithCurrentState(id: UUID,
         )
     }
 
-//    val lastWatering: BedWatered?
+//    val lastWatering: BedCellWatered?
 //
 //    val lastFertilization: BedFertilized?
 //

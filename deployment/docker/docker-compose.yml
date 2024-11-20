@@ -1,0 +1,32 @@
+version: "3.8"
+services:
+
+  # Applications
+
+  starbornag:
+    depends_on:
+      - starborn-events
+    image: "starbornag"
+    container_name: "starbornag"
+    ports:
+      - 9002:9002
+      - 8002:8002
+    environment:
+      # Buildpacks environment variable to enable debug through a socket on port 8002
+      - BPL_DEBUG_ENABLED=true
+      - BPL_DEBUG_PORT=8002
+      - SPRING_R2DBC_URL=r2dbc:postgresql://polar-postgres:5432/starborn_events
+      - SPRING_FLYWAY_URL=jdbc:postgresql://polar-postgres:5432/starborn_events
+  
+  # Backing Services
+
+  starborn-events:
+    image: "postgres:14.12"
+    container_name: "starborn-events"
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - ./postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql

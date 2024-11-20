@@ -25,11 +25,4 @@ class CellPositionDeserializationTest : DeserializationTest<CellPosition>(CellPo
                 }
             """.trimIndent() to CellPosition(4, 8)
         )
-
-//    @Test
-//    fun `deserializes object`() {
-//        val input = ""
-//        val actual = jacksonObjectMapper().readValue(input, type)
-//        compare(actual, expected)
-//    }
 }

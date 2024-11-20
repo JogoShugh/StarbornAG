@@ -25,3 +25,4 @@ sealed class RelativeDatesDslTimePeriod {
 val Int.months get() = Months(this)
 val Int.days get() = Days(this)
 val Int.weeks get() = Weeks(this)
+val now get() = 0.days.ago

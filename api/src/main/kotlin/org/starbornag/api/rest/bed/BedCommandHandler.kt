@@ -1,25 +1,22 @@
 package org.starbornag.api.rest.bed
 
 import ch.rasc.sse.eventbus.SseEventBus
-import jakarta.annotation.PostConstruct
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
+import org.starbornag.api.domain.bed.BedAggregate
+import org.starbornag.api.domain.bed.BedEventBus
 import org.starbornag.api.domain.bed.BedRepository
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 
 @RestController
 class BedCommandHandler(
     private val bedCommandMapper: BedCommandMapper,
-    private val sseEventBus: SseEventBus
+    private val sseEventBus: SseEventBus,
+    private val applicationScope: CoroutineScope
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @PostMapping("/api/beds/{bedId}/{action}", consumes = [MediaType.APPLICATION_JSON_VALUE])
     suspend fun handle(
@@ -29,10 +26,9 @@ class BedCommandHandler(
     ): ResponseEntity<BedResourceWithCurrentState>  {
         try {
             val bed = BedRepository.getBed(bedId)
-            scope.launch {
-                val command = bedCommandMapper.convertCommand(action, commandPayload)
-                bed?.execute(command, sseEventBus) // Execute the command directly
-            }
+            val bedEventBus = BedEventBus(sseEventBus, applicationScope)
+            val command = bedCommandMapper.convertCommand(action, commandPayload)
+            bed?.execute(command, bedEventBus) // Execute the command directly
             val resource = BedResourceWithCurrentState.from(bed!!)
             val response = ResponseEntity.ok(resource)
             return response
@@ -42,9 +38,28 @@ class BedCommandHandler(
         }
     }
 
-    @GetMapping("/api/beds/{bedId}/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    fun events(@PathVariable bedId: UUID,
-               @RequestParam clientId: UUID
-               ): ResponseEntity<SseEmitter> =
-        ResponseEntity.ok(sseEventBus.createSseEmitter(clientId.toString(), 60_000L, bedId.toString()))
+@GetMapping("/api/beds/{bedId}/events", produces =
+    [MediaType.TEXT_EVENT_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE])
+fun events(@PathVariable bedId: UUID,
+           @RequestParam clientId: UUID,
+           @RequestHeader("Accept") acceptHeader: MediaType?
+): ResponseEntity<SseEmitter> {
+            val bed = BedRepository.getBed(bedId)
+    val eventNames = getEventNamesFromBedCells(bed)
+    val mediaType = acceptHeader ?: MediaType.TEXT_PLAIN
+    return ResponseEntity.ok(sseEventBus.createSseEmitter(
+            clientId.toString(),
+        120_000L,
+            mediaType,
+            *eventNames.toTypedArray()
+        )
+    )
+}
+
+private fun getEventNamesFromBedCells(bed: BedAggregate?) =
+    bed!!.rows.flatMap { row ->
+        row.cells.flatMap { cell ->
+            listOf("events-$cell", "plants-$cell")
+        }
+    }
 }

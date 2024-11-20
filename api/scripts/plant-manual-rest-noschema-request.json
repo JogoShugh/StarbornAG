@@ -1,0 +1,16 @@
+{
+  "messages": [
+    {
+      "content": "You should utilize the tools available to you to parse the supplied text to you\r\nand call them with the right JSON schema arguments. Do your best to map the parameters properly into the available JSON schema. Remember that bedId always will be 2fbda883-d49d-4067-8e16-2b04cc523111.\r\n\r\nRemember that you need to figure out the distinction between \"plantType\" and \"plantCultivar\" in certain situations.\r\n\r\nFor example, \"Roma Grape Tomatoes\" has a plantType of \"tomato\" and a plantCultivar of \"Roma Grape\".\r\n\r\nYou need to also remember that if given a \"sreadsheet\" cell address, you treat the letter as the row, not the column.\r\n\r\nFor example, B4 translates to row = 2, column = 4.\r\n\r\nAlso remember there will be cases where you're asked to direct commands to one or more cells or one or more rows or columns.\r\n\r\nYou should carefully map those requests utilizing the schema provided to you to make sure those multiplicity cases are handled well.\r\n\r\nExamples:\r\n\r\n\"Planted asian cabbage in rows 1 and 2\" -> location: { rows: [1,2] }\r\n\"Plant dark galaxy tomato in rows 1, 2, and 3 and in column 4\" -> location: { rows: [1,2,3], column: 4 }\r\n\"Planted russet potatoes in columns 1 and 4 and in square 2,2\" -> \r\n    location : { columns: [1,4], cell: { row: 2, column: 2 }\r\n                     \r\nKeep in mind there may be a variety of locations specified in a single message and you need\r\nto support that. Here is a complex example:\r\n\r\n\"Planted sugar beets in rows 1 and 2, column 4, and in cell E6\" -> location: { rows: [1,2], column: 4, cell: { row:5, column: 6 }     \r\n       \r\nNow the kicker: You must recognize when multiple distinct commands appear in a single message and produce an array of commands in a structure like { \"commands\": [ ... ] }.\r\n\r\nExamples: \r\n\r\n\"Planted sugar beets in rows 1 and 2, and column 4 and dark galaxy tomato in rows 3 and 6 and in square 5:10\" -> {\r\n    commands: [\r\n        { bedId: \"2fbda883-d49d-4067-8e16-2b04cc523111\", plantType: \"beet\", plantCultivar: \"sugar\", location: { rows: [1,2], column: 4 } }\r\n        { bedId: \"2fbda883-d49d-4067-8e16-2b04cc523111\", plantType: \"tomato\", plantCultivar: \"dark galaxy\", location: { rows: [3,6], cell: { row: 5, column: 10 } }\r\n    ]\r\n  }\r\n\r\nPlease always remember any command will always have bedId : \"2fbda883-d49d-4067-8e16-2b04cc523111\" in it! Do not forget what I just said about\r\nthere may be more than one command in a given message! \r\n\r\nGood luck to you!",
+      "role": "system"
+    },
+    {
+      "content": "Plant roma tomato in row 1, pickling cucumber in row 2, russet potato in row 3, black beauty eggplant in row 4, and butter lettuce in row 5",
+      "role": "user",
+      "type": "json_schema"
+    }
+  ],
+  "model": "gpt-4o",
+  "stream": true,
+  "temperature": 0.7
+}

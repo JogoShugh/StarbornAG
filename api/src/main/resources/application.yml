@@ -1,0 +1,38 @@
+#spring.application.name=api
+#spring.web.resources.cache.period=0
+#spring.ai.openai.api-key=$OPENAPI
+#spring.ai.openai.chat.options.model=gpt-4o
+#spring.ai.openai.chat.options.response-format.type=JSON_OBJECT
+#logging.level.org.springframework.ai.chat.client.advisor=DEBUG
+#logging.level.org.springframework.ai.openai=DEBUG
+#spring.ai.openai.chat.options.response-format.type=JSON_SCHEMA
+#spring.ai.openai.chat.options.response-format.strict=true
+#logging.level.org.springframework=DEBUG
+#logging.level.com.fasterxml.jackson=DEBUG
+
+spring:
+    application:
+        name: api
+    web:
+        resources:
+            cache:
+                period: 0
+    r2dbc:
+        username: user
+        password: password
+        url: r2dbc:postgresql://localhost:5432/starborn_events
+        pool:
+            max-create-connection-time: 2s
+            initial-size: 5
+            max-size: 10
+    flyway:
+        user: ${spring.r2dbc.username}
+        password: ${spring.r2dbc.password}
+        url: jdbc:postgresql://localhost:5432/starborn_events?driver=org.postgresql.Driver
+    ai:
+        openai:
+            chat:
+                options:
+                    model: gpt-4o
+                    response-format:
+                        type: JSON_OBJECT

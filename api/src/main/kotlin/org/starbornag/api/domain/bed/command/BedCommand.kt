@@ -1,9 +1,10 @@
 package org.starbornag.api.domain.bed.command
 
+import java.time.Instant
 import java.util.*
 
 sealed class BedCommand : BedId {
-    data class PrepareBed(
+    data class      PrepareBed(
         override val bedId: UUID,
         val name: String,
         val dimensions: Dimensions,
@@ -15,7 +16,7 @@ sealed class BedCommand : BedId {
 
         data class PlantSeedling(
             override val bedId: UUID,
-            val started: Date,
+            val started: Date = Date.from(Instant.now()),
             val plantType: String,
             val plantCultivar: String,
             override val location: CellsSelection? = null

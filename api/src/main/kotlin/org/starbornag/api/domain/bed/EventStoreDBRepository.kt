@@ -6,7 +6,6 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.stereotype.Component
 import java.util.*
 
-@Component
 class EventStoreDBRepository<T>(private val clazz: Class<T>) : IEventStoreRepository<T> {
     val mapper = jacksonObjectMapper()
 
@@ -20,12 +19,17 @@ class EventStoreDBRepository<T>(private val clazz: Class<T>) : IEventStoreReposi
         val readStreamOptions = ReadStreamOptions.get()
             .fromStart()
             .notResolveLinkTos()
-        val readResult = client.readStream(streamName, readStreamOptions).get()
-        return sequence {
-            readResult.events.forEach {
-                val event = mapper.readValue(it.originalEvent.eventData, clazz)
-                yield(event)
+        try {
+            val readResult = client.readStream(streamName, readStreamOptions).get()
+            return sequence {
+                readResult.events.forEach {
+                    val event = mapper.readValue(it.originalEvent.eventData, clazz)
+                    yield(event)
+                }
             }
+        } catch (exception: Throwable) {
+            // TODO clean this up to be async?
+            return sequenceOf()
         }
     }
 

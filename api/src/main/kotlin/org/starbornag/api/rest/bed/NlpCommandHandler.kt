@@ -15,8 +15,11 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.starbornag.api.LogTimer.logNow
+import org.starbornag.api.data.EventRepository
 import org.starbornag.api.domain.bed.BedEventBus
 import org.starbornag.api.domain.bed.BedRepository
+import org.starbornag.api.domain.bed.command.BedAction
+import org.starbornag.api.domain.bed.command.BedCommand
 import org.starbornag.api.domain.bed.command.BedCommand.CellCommand.PlantSeedling
 import reactor.core.publisher.Flux
 import java.util.*
@@ -56,13 +59,84 @@ private fun getSystemPrompt(bedId: UUID) =
         
         "Planted sugar beets in rows 1 and 2, and column 4 and dark galaxy tomato in rows 3 and 6 and in square 5:10" -> {
             commands: [
-                { bedId: "$bedId", plantType: "beet", plantCultivar: "sugar", location: { rows: [1,2], column: 4 } }
-                { bedId: "$bedId", plantType: "tomato", plantCultivar: "dark galaxy", location: { rows: [3,6], cell: { row: 5, column: 10 } }
+                { bedId: "$bedId", action: "plant", plantType: "beet", plantCultivar: "sugar", location: { rows: [1,2], column: 4 } }
+                { bedId: "$bedId", action: "plant", plantType: "tomato", plantCultivar: "dark galaxy", location: { rows: [3,6], cell: { row: 5, column: 10 } }
             ]
           }
         
+        Each of the respective action types has a schema defined by kotlin data classes. They are shown below in the Schema section.
+        
+        Keep in mind that you must fill in logical values for the fields that are not marked as nullable. 
+        
+        * So, for example, the `started` value must be valid JSON representation of the current Date/Time so that it can be parsed by Jackon on the backend.
+        * And, for fields like `volume`, just use a default value numeric value of `1.0`. 
+     
+        # Schema       
+        ```
+        sealed class BedCommand : BedId {
+            data class PrepareBed(
+                override val bedId: UUID,
+                val name: String,
+                val dimensions: Dimensions,
+                val cellBlockSize: Int = 1
+            ) : BedCommand()
+        
+            sealed class CellCommand() : BedCommand(), BedId {
+                abstract val location: CellsSelection?
+                val action: String = ""
+        
+                data class PlantSeedling(
+                    override val bedId: UUID,
+                    val started: Date,
+                    val plantType: String,
+                    val plantCultivar: String,
+                    override val location: CellsSelection? = null
+                ) : CellCommand()
+        
+                data class Fertilize(
+                    override val bedId: UUID,
+                    val started: Date,
+                    val volume: Double,
+                    val fertilizer: String,
+                    override val location: CellsSelection? = null
+                ) : CellCommand()
+        
+                data class Mulch(
+                    override val bedId: UUID,
+                    val started: Date,
+                    val volume: Double,
+                    val material: String,
+                    override val location: CellsSelection? = null
+                ) : CellCommand()
+        
+                data class Water(
+                    override val bedId: UUID,
+                    val started: Date,
+                    val volume: Double,
+                    override val location: CellsSelection? = null
+                ) : CellCommand()
+        
+                data class Harvest(
+                    override val bedId: UUID,
+                    val started: Date,
+                    val plantType: String,
+                    val plantCultivar: String,
+                    val quantity: Int? = null,
+                    val weight: Double? = null,
+                    override val location: CellsSelection? = null
+                ) : CellCommand()
+            }
+        }        
+        ```
+                
         Please always remember any command will always have bedId : "$bedId" in it! Do not forget what I just said about
-        there may be more than one command in a given message! 
+        there may be more than one command in a given message!
+        
+        You also need to strongly remember to include the "action" property for each type of action! Without that, all parsing on the backend will fail.
+        
+        And finally, you absolutely need to make sure what you produce is valid JSON. Don't skimp on { or } or ( or commas, or any other characters!
+        
+        Please double check what you produce to make sure it's valid JSON! Never send back invalid JSON.
         
         Good luck to you!
     """.trimIndent()
@@ -86,6 +160,7 @@ private fun ORIGgetSystemPrompt(bedId: UUID) =
     
         sealed class CellCommand() : BedCommand(), BedId {
             abstract val location: CellsSelection?
+            val action: String = ""
     
             data class PlantSeedling(
                 override val bedId: UUID,
@@ -158,8 +233,10 @@ class NlpCommandHandler(
     chatClientBuilder: ChatClient.Builder,
     private val mapper: ObjectMapper,
     private val sseEventBus: SseEventBus,
-    private val applicationScope: CoroutineScope
-) {
+    private val eventRepository: EventRepository,
+    private val applicationScope: CoroutineScope,
+    private val bedCommandMapper: BedCommandMapper
+    ) {
     private val client: ChatClient =
         chatClientBuilder
             .defaultAdvisors(
@@ -195,7 +272,14 @@ class NlpCommandHandler(
     private suspend fun plantSeedlingHandler(command: PlantSeedling) {
         val bedId = command.bedId
         val bed = BedRepository.getBed(bedId)
-        val bedEventBus = BedEventBus(sseEventBus, applicationScope)
+        val bedEventBus = BedEventBus(sseEventBus, eventRepository, mapper, applicationScope)
+        bed?.execute(command, bedEventBus)
+    }
+
+    private suspend fun bedCommandHandler(command: BedCommand) {
+        val bedId = command.bedId
+        val bed = BedRepository.getBed(bedId)
+        val bedEventBus = BedEventBus(sseEventBus, eventRepository, mapper, applicationScope)
         bed?.execute(command, bedEventBus)
     }
 
@@ -221,9 +305,14 @@ class NlpCommandHandler(
                     .collect { command ->
                         launch {
                             logNow("Found complete json object: $command")
-                            val plantSeedling = mapper.readValue(command, PlantSeedling::class.java)
-                            logNow("Processing command: $plantSeedling")
-                            plantSeedlingHandler(plantSeedling)
+                            val action = mapper.readValue(command, BedAction::class.java)
+                            val act = action.action
+                            val cmd = bedCommandMapper.convertCommand(act, command)
+                            logNow("Processing command: $cmd")
+                            bedCommandHandler(cmd)
+//                            val plantSeedling = mapper.readValue(command, PlantSeedling::class.java)
+//                            logNow("Processing command: $plantSeedling")
+                        //                            plantSeedlingHandler(plantSeedling)
                         }
                     }
             }

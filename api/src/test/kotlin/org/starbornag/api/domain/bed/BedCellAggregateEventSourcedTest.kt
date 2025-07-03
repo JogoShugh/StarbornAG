@@ -13,6 +13,10 @@ class BedCellAggregateEventSourcedTest {
     private class DummyBus : IBedEventBus {
         override suspend fun publishEvent(command: BedCommand.CellCommand, event: BedEvent) {
         }
+
+        override suspend fun storeEvent(event: BedEvent) {
+            TODO("Not yet implemented")
+        }
     }
 
     @Test

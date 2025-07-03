@@ -2,6 +2,8 @@ package org.starbornag.api.domain.bed
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import kotlinx.coroutines.delay
+import org.springframework.beans.factory.BeanFactoryUtils
+import org.springframework.context.ApplicationContext
 import org.starbornag.api.domain.bed.command.BedCommand
 import org.starbornag.api.domain.bed.command.BedCommand.*
 import org.starbornag.api.domain.bed.command.CellPosition
@@ -141,6 +143,7 @@ class BedCellAggregate(
         planting = Planting(command.plantType, command.plantCultivar)
         events.add(plantedEvent)
         bedEventBus.publishEvent(command, plantedEvent)
+        bedEventBus.storeEvent(plantedEvent)
     }
 
     private suspend fun execute(command: CellCommand.Water, bedEventBus: IBedEventBus) {

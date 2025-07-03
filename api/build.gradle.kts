@@ -17,8 +17,8 @@ java {
 	}
 }
 
-//extra["springAiVersion"] = "1.0.0-M2"
-extra["springAiVersion"] = "1.0.0-20241008.115115-715"
+extra["springAiVersion"] = "1.0.0-M2"
+//extra["springAiVersion"] = "1.0.0-20241008.115115-715"
 repositories {
 	mavenCentral()
 	maven {

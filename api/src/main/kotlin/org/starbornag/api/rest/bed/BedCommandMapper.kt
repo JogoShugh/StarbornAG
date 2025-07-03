@@ -21,7 +21,7 @@ class BedCommandMapper(
 
     fun convertCommand(action: String, commandData: Any): BedCommand {
         val commandType = pathToCommandTypeMap[action] ?: throw IllegalArgumentException("Unsupported action: $action")
-        val value = objectMapper.writeValueAsString(commandData)
+        val value = if (commandData is String) commandData else objectMapper.writeValueAsString(commandData)
         return objectMapper.readValue(value, commandType.java)
     }
 }

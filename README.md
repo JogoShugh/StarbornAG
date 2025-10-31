@@ -61,3 +61,35 @@ I now regularly share StarbornAG data with my community garden group, helping ot
 ---
 
 *StarbornAG transforms garden record-keeping from a tedious chore into a seamless part of daily garden care, while building a foundation for scientific understanding of sustainable growing methods.*
+
+# Early Prototype
+
+Leverage AI for building a prototype of a VUI / GUI for logging home gardening activities: planting, mulching, watering, weeding, harvesting, etc
+
+<img width="600" alt="image" src="https://gist.github.com/user-attachments/assets/869af79e-4f8f-475c-a025-307c5a2a4856">
+
+
+## Tools
+
+* Spring Boot with Spring AI, leveraging OpenAI's chat completions API
+* Kotlin language utilizing coroutines and an application-level CoroutineScope for background processing
+* Spring SSE Support for sending processed result events to the GUI for screen updating
+* HTMX library on the front end with its [amazingly simple SSE support](https://github.com/bigskysoftware/htmx/blob/master/www/content/extensions/sse.md)
+
+## Challenges
+
+* While the chat completions API supports the concept of [Function Calling](https://platform.openai.com/docs/guides/function-calling) to let you send it a JSON schema of your function signatures and it attempts to produce an array of one or more "toolCalls" results, this does increase the system propmpt payload significantly, and complicates the process of parsing the streamed results. 
+* Spring's SSE Emitter does not support, out of the box, 1 to N subscriptions.
+
+## Solutions
+
+* I utilized the Actson library found on Github for supporting parsing JSON objects "just-in-time", and calling `emit` with them via a Kotlin flow as soon as enough of the fragment from the overall response arrives. See [this write up in Github for details so far](https://github.com/michel-kraemer/actson/issues/91).
+* To support a 1 to N subcriber model, I leveraged the SSE EventBus project from Github which allows this easily.
+  * But, I also wanted to allow each subscriber to specify the Media Type they wanted to receive, since some programmatic subscribers will need JSON, while the GUI will just need simple plaintext or HTML fragments.
+    * Began creating this [PR](https://github.com/JogoShugh/sse-eventbus/pull/1/files#diff-b83da490a854167414f4bc48b8a5cbc6ff36c5dcb694eb1f039a993bcac27fc6) to update SSE EventBus to leverage Spring's built in MediaType formatting support and provide an option to bypass the original custom approach in the library without breaking existing behavior.
+    * [See this write up](https://github.com/ralscha/sse-eventbus/issues/28#issuecomment-2418313352) for how I'm starting to use it in my project.
+
+## Video Demonstrations
+
+Inquire with me directly
+

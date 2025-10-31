@@ -66,7 +66,7 @@ I now regularly share StarbornAG data with my community garden group, helping ot
 
 Leverage AI for building a prototype of a VUI / GUI for logging home gardening activities: planting, mulching, watering, weeding, harvesting, etc
 
-<img width="600" alt="image" src="https://gist.github.com/user-attachments/assets/869af79e-4f8f-475c-a025-307c5a2a4856">
+<img width="600" alt="image" src="prototype.png">
 
 
 ## Tools

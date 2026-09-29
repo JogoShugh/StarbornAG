@@ -59,6 +59,12 @@ fun Bed.cellsAt(location: CellsSelection?): List<UUID> {
     return positions.map { rows[it.row - 1][it.column - 1] }
 }
 
+/** The 1-based row and column of a cell, or null when the cell is not part of this bed. */
+fun Bed.positionOf(cellId: UUID): CellPosition? =
+    rows.withIndex().firstNotNullOfOrNull { (rowIndex, row) ->
+        row.indexOf(cellId).takeIf { it >= 0 }?.let { CellPosition(rowIndex + 1, it + 1) }
+    }
+
 class BedAlreadyExists(val bedId: UUID) : IllegalStateException("Bed $bedId has already been prepared")
 
 class LocationOutsideBed(val bedId: UUID, val position: CellPosition) :

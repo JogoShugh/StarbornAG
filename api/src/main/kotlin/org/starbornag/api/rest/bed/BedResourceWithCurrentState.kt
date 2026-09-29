@@ -1,6 +1,12 @@
 package org.starbornag.api.rest.bed
 
-import org.starbornag.api.domain.bed.*
+import org.starbornag.api.application.bed.LoadedBedCell
+import org.starbornag.api.domain.bed.Bed
+import org.starbornag.api.domain.bed.BedCellWatered
+import org.starbornag.api.domain.bed.BedEvent
+import org.starbornag.api.domain.bed.BedFertilized
+import org.starbornag.api.domain.bed.BedHarvested
+import org.starbornag.api.domain.bed.Planting
 import java.util.*
 
 data class BedResourceCell(
@@ -16,43 +22,29 @@ data class BedResourceRow(
     val cells: List<BedResourceCell>
 )
 
-class BedResourceWithCurrentState(id: UUID,
-                                  val name: String,
-                                  val rows: List<BedResourceRow>,
-//                                  waterings: List<BedCellWatered>?,
-//                                  fertilizations: List<BedFertilized>?,
-//                                  harvestings: List<BedHarvested>?
-    ) : BedResource<BedResourceWithCurrentState>(id) {
+class BedResourceWithCurrentState(
+    id: UUID,
+    val name: String,
+    val rows: List<BedResourceRow>
+) : BedResource<BedResourceWithCurrentState>(id) {
     companion object {
-        fun from(bed: BedAggregate) = BedResourceWithCurrentState(
-            bed.id, //28453a3c-ef59-40fa-a31c-9b30ae938b9e
+        /** [cells] holds each cell's loaded state and history, row by row, in the bed's layout. */
+        fun from(bed: Bed, cells: List<List<LoadedBedCell>>) = BedResourceWithCurrentState(
+            bed.id,
             bed.name,
-            bed.rows.map {
-                BedResourceRow(it.cells.map { id ->
-                    val cell = BedCellRepository.getBedCell(id)
+            cells.map { row ->
+                BedResourceRow(row.map { loaded ->
+                    val cell = loaded.state
                     BedResourceCell(
                         cell.id,
-                        cell.planting,
-                        cell.events,
-                        cell.waterings.lastOrNull(),
-                        cell.fertilizations.lastOrNull(),
+                        cell.plantings.lastOrNull() ?: Planting("", ""),
+                        loaded.history,
+                        cell.lastWatered,
+                        cell.lastFertilized,
                         cell.harvests.lastOrNull()
                     )
                 })
             }
         )
     }
-
-//    val lastWatering: BedCellWatered?
-//
-//    val lastFertilization: BedFertilized?
-//
-//    val lastHarvest: BedHarvested?
-//
-//    init {
-//        lastWatering = waterings?.lastOrNull()
-//        lastFertilization = fertilizations?.lastOrNull()
-//        lastHarvest = harvestings?.lastOrNull()
-//    }
 }
-

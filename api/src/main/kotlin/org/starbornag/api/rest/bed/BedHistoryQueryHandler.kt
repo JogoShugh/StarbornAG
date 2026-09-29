@@ -4,16 +4,12 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
-import org.starbornag.api.domain.bed.BedRepository
 import java.util.*
 
 @RestController
-class BedHistoryQueryHandler {
+class BedHistoryQueryHandler(private val resources: BedResources) {
 
     @GetMapping("/api/beds/{bedId}/history")
-    suspend fun handle(@PathVariable bedId: UUID): ResponseEntity<BedResourceWithHistory> {
-        val bed = BedRepository.getBed(bedId)
-        val resource = BedResourceWithHistory.from(bed!!)
-        return ResponseEntity.ok(resource)
-    }
+    suspend fun handle(@PathVariable bedId: UUID): ResponseEntity<BedResourceWithHistory> =
+        ResponseEntity.ok(resources.history(bedId))
 }

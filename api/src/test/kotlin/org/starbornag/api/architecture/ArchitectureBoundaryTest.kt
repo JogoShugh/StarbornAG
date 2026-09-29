@@ -23,9 +23,9 @@ class ArchitectureBoundaryTest {
     // Guards the other rules: an empty scope would make every assertFalse pass vacuously.
     @Test
     fun `the scope contains the domain and adapter files`() {
-        assertThat(domainFiles.map { it.name }).containsAtLeast("BedAggregate", "BedCellAggregate", "BedEvent")
+        assertThat(domainFiles.map { it.name }).containsAtLeast("Bed", "BedCell", "BedEvent")
         assertThat(productionFiles.map { it.name }).containsAtLeast("EventStoreConfig", "BedCommandHandler")
-        assertThat(applicationFiles.map { it.name }).containsAtLeast("Beds", "Cells", "BedEventPublisher")
+        assertThat(applicationFiles.map { it.name }).containsAtLeast("Beds", "BedCells", "BedEventPublisher")
     }
 
     @Test
@@ -37,8 +37,6 @@ class ArchitectureBoundaryTest {
             "org.starbornag.api.application"
         )
         domainFiles
-            // Legacy persistence for the old in-memory aggregates; deleted when REST moves to the use cases.
-            .filter { it.name != "BedCellStateRepository" }
             .assertFalse { file -> file.hasImport { import -> forbidden.any { import.name.startsWith(it) } } }
     }
 

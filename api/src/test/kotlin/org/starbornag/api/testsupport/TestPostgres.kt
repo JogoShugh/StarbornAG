@@ -43,6 +43,14 @@ object TestPostgres {
         return connectionFactory
     }
 
+    /** Spring properties that point a whole application's R2DBC connection at the container. */
+    fun r2dbcProperties(): Map<String, String> = mapOf(
+        "spring.r2dbc.url" to
+            "r2dbc:postgresql://${container.host}:${container.firstMappedPort}/${container.databaseName}",
+        "spring.r2dbc.username" to container.username,
+        "spring.r2dbc.password" to container.password
+    )
+
     /** Points a Spring Boot test's R2DBC connection at the container. */
     fun registerR2dbc(registry: DynamicPropertyRegistry) {
         registry.add("spring.r2dbc.url") {

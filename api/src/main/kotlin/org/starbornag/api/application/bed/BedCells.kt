@@ -1,16 +1,20 @@
 package org.starbornag.api.application.bed
 
+import org.starbornag.api.domain.bed.BedCell
 import org.starbornag.api.domain.bed.BedEvent
-import org.starbornag.api.domain.bed.Cell
 import org.starbornag.api.domain.bed.cellsAt
 import org.starbornag.api.domain.bed.command.BedCommand.CellCommand
 import org.starbornag.eventstore.EventStore
 import org.starbornag.eventstore.Repository
 import java.util.*
 
-/** Use cases for cells. Each cell is one stream in the event store, identified by the cell id. */
-class Cells(eventStore: EventStore, private val beds: Beds, private val publisher: BedEventPublisher) {
-    private val repository = Repository<Cell?, BedEvent>(eventStore, Cell::class, { null }, Cell::evolve)
+/** Use cases for bed cells. Each cell is one stream in the event store, identified by the cell id. */
+class BedCells(
+    private val eventStore: EventStore,
+    private val beds: Beds,
+    private val publisher: BedEventPublisher
+) {
+    private val repository = Repository<BedCell?, BedEvent>(eventStore, BedCell::class, { null }, BedCell::evolve)
 
     /**
      * Records the command on every cell its location names, announces each cell's events once
@@ -26,7 +30,7 @@ class Cells(eventStore: EventStore, private val beds: Beds, private val publishe
     suspend fun handle(command: CellCommand): List<BedEvent> {
         val bed = beds.find(command.bedId) ?: throw UnknownBed(command.bedId)
         return bed.cellsAt(command.location).flatMap { cellId ->
-            val decide = Cell.decide(bed.id, cellId, command)
+            val decide = BedCell.decide(bed.id, cellId, command)
             var recorded = emptyList<BedEvent>()
             repository.handle(cellId) { cell -> decide(cell).also { recorded = it } }
             publisher.publish(recorded)
@@ -34,7 +38,16 @@ class Cells(eventStore: EventStore, private val beds: Beds, private val publishe
         }
     }
 
-    suspend fun find(cellId: UUID): Cell? = repository.find(cellId)?.state
+    suspend fun find(cellId: UUID): BedCell? = repository.find(cellId)?.state
+
+    /** The cell's current state and its full history. A cell nothing has happened to yet has neither. */
+    suspend fun load(bedId: UUID, cellId: UUID): LoadedBedCell {
+        val history = eventStore.getEvents(cellId).filterIsInstance<BedEvent>()
+        val state = history.fold(BedCell(cellId, bedId)) { cell, event -> BedCell.evolve(cell, event) }
+        return LoadedBedCell(state, history)
+    }
 }
+
+data class LoadedBedCell(val state: BedCell, val history: List<BedEvent>)
 
 class UnknownBed(val bedId: UUID) : NoSuchElementException("Bed $bedId has not been prepared")

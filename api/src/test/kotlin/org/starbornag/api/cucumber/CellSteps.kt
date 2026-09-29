@@ -9,7 +9,7 @@ import io.cucumber.datatable.DataTable
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
 import org.starbornag.api.application.bed.UnknownBed
-import org.starbornag.api.domain.bed.Cell
+import org.starbornag.api.domain.bed.BedCell
 import org.starbornag.api.domain.bed.LocationOutsideBed
 import org.starbornag.api.domain.bed.command.BedCommand.CellCommand
 import org.starbornag.api.domain.bed.command.CellPosition
@@ -96,7 +96,7 @@ class CellSteps(private val world: GardenWorld) {
         }
     }
 
-    private fun Cell.hasRecorded(action: String): Boolean =
+    private fun BedCell.hasRecorded(action: String): Boolean =
         when (action) {
             "plant" -> plantings.isNotEmpty()
             "water" -> lastWatered != null

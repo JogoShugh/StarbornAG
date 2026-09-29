@@ -10,8 +10,9 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
-import org.starbornag.api.domain.bed.BedCellRepository
-import org.starbornag.api.domain.bed.BedRepository
+import org.starbornag.api.application.bed.BedCells
+import org.starbornag.api.domain.bed.Planting
+import org.starbornag.api.domain.bed.positionOf
 import org.starbornag.api.domain.bed.command.CellPosition
 import org.starbornag.api.domain.bed.command.hasDirection
 import java.util.*
@@ -124,11 +125,10 @@ val CommonAttributeGroupFacade.hx: HX
     get() = HX(this)
 
 @RestController
-class IndexController {
+class IndexController(private val resources: BedResources, private val bedCells: BedCells) {
     @GetMapping("/beds/{bedId}")
     suspend fun index(@PathVariable bedId: UUID): ResponseEntity<String> {
-        val bed = BedRepository.getBed(bedId)
-        val bedResource = BedResourceWithCurrentState.from(bed!!)
+        val bedResource = resources.currentState(bedId)
         val cellsPerRow = bedResource.rows[0].cells.count()
 
         val html = createHTML().html {
@@ -387,12 +387,12 @@ if (annyang) {
         @GetMapping("/beds/{bedId}/detail/{bedCellId}")
         suspend fun detail(@PathVariable bedId: UUID, @PathVariable bedCellId: UUID): ResponseEntity<String> {
 
-            val bedCell = BedCellRepository.getBedCell(bedCellId)
+            val bed = resources.bed(bedId)
+            val location = bed.positionOf(bedCellId) ?: throw UnknownBedCell(bedId, bedCellId)
+            val loaded = bedCells.load(bedId, bedCellId)
+            val planting = loaded.state.plantings.lastOrNull() ?: Planting("", "")
 
-            val location = bedCell.cellPosition
-            val parentBedDimensions = bedCell.parentBedDimension
-
-            val neighbors = location.neighbors(parentBedDimensions.rows, parentBedDimensions.columns)
+            val neighbors = location.neighbors(bed.rows.size, bed.rows.first().size)
 
             val fragment = buildString {
                 appendHTML().div {
@@ -412,9 +412,9 @@ if (annyang) {
                             classes = setOf("grid-solo")
                             +("Location:" + location.row.toString() + ":" + location.column.toString())
                             +(neighbors.joinToString(","))
-                            +(bedCell.planting.plantType + " : " + bedCell.planting.plantCultivar)
+                            +(planting.plantType + " : " + planting.plantCultivar)
                             ul {
-                                bedCell.events.forEach {
+                                loaded.history.forEach {
                                     li {
                                         +(it.ended.toInstant().toString() + " -- " + it.javaClass.simpleName)
                                     }

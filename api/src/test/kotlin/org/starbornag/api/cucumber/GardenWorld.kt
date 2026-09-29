@@ -4,7 +4,7 @@ import io.r2dbc.spi.ConnectionFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import org.starbornag.api.application.bed.Beds
-import org.starbornag.api.application.bed.Cells
+import org.starbornag.api.application.bed.BedCells
 import org.starbornag.api.domain.bed.BedEvent
 import org.starbornag.api.testsupport.TestPostgres
 import java.util.*
@@ -18,7 +18,7 @@ class GardenWorld {
 
     lateinit var beds: Beds
         private set
-    lateinit var cells: Cells
+    lateinit var cells: BedCells
         private set
 
     private val bedIds = mutableMapOf<String, UUID>()
@@ -36,7 +36,7 @@ class GardenWorld {
     fun restart() = blocking {
         val eventStore = TestPostgres.eventStore(connectionFactory)
         beds = Beds(eventStore)
-        cells = Cells(eventStore, beds) { events -> announcements += events }
+        cells = BedCells(eventStore, beds) { events -> announcements += events }
     }
 
     fun <T> blocking(block: suspend CoroutineScope.() -> T): T = runBlocking(block = block)

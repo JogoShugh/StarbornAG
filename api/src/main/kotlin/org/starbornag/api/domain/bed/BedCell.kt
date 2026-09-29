@@ -4,10 +4,11 @@ import org.starbornag.api.domain.bed.command.BedCommand.CellCommand
 import java.util.*
 
 /**
- * One square-foot cell of a bed. Its history is its own stream; state is rebuilt with [evolve]
- * and each command is turned into the cell's event with [decide].
+ * Aggregate root for one square foot of a bed. It keeps the long-lived history of that soil in
+ * its own stream (stream id = cell id); state is rebuilt with [evolve] and each command is turned
+ * into the cell's events with [decide].
  */
-data class Cell(
+data class BedCell(
     val id: UUID,
     val bedId: UUID,
     val plantings: List<Planting> = emptyList(),
@@ -17,8 +18,8 @@ data class Cell(
     val harvests: List<BedHarvested> = emptyList()
 ) {
     companion object {
-        fun evolve(cell: Cell?, event: BedEvent): Cell {
-            val current = cell ?: Cell(event.bedCellId, event.bedId)
+        fun evolve(cell: BedCell?, event: BedEvent): BedCell {
+            val current = cell ?: BedCell(event.bedCellId, event.bedId)
             return when (event) {
                 is BedCellPlanted ->
                     current.copy(plantings = current.plantings + Planting(event.plantType, event.plantCultivar))
@@ -30,7 +31,7 @@ data class Cell(
         }
 
         /** Every care command records exactly one event on the cell. */
-        fun decide(bedId: UUID, cellId: UUID, command: CellCommand): (Cell?) -> List<BedEvent> = { _ ->
+        fun decide(bedId: UUID, cellId: UUID, command: CellCommand): (BedCell?) -> List<BedEvent> = { _ ->
             listOf(eventFor(bedId, cellId, command))
         }
 

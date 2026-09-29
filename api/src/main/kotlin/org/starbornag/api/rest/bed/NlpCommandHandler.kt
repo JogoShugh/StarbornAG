@@ -9,6 +9,7 @@ import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor
 import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
+import org.springframework.ai.model.tool.ToolCallingChatOptions
 //import org.springframework.ai.openai.api.OpenAiApi.ChatCompletionRequest.ResponseFormat
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -254,10 +255,9 @@ class NlpCommandHandler(
         println(systemMessage)
         val userMessage = UserMessage(prompt)
         val response = client.prompt()
-//            .options(
-//                FunctionCallingOptionsBuilder().withProxyToolCalls(true).build()
-//            )
-            .functions("prepareBed")
+            // Return the tool call to us instead of executing it, so its arguments can be shown for confirmation.
+            .options(ToolCallingChatOptions.builder().internalToolExecutionEnabled(false).build())
+            .toolNames("prepareBed")
             .messages(systemMessage, userMessage)
             .call()
             .chatResponse()

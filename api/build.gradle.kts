@@ -1,11 +1,10 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-	kotlin("jvm") version "1.9.25"
-	kotlin("plugin.spring") version "1.9.25"
-	id("org.springframework.boot") version "3.3.4"
-	id("io.spring.dependency-management") version "1.1.6"
-	id("org.asciidoctor.jvm.convert") version "3.3.2"
+	kotlin("jvm") version "2.0.21"
+	kotlin("plugin.spring") version "2.0.21"
+	id("org.springframework.boot") version "3.5.16"
+	id("io.spring.dependency-management") version "1.1.7"
 }
 
 group = "org.starbornag"
@@ -17,25 +16,16 @@ java {
 	}
 }
 
-extra["springAiVersion"] = "1.0.0-M2"
-//extra["springAiVersion"] = "1.0.0-20241008.115115-715"
+// Spring Boot 3.5 manages Kotlin 1.9 libraries; keep them in step with the Kotlin plugin.
+extra["kotlin.version"] = "2.0.21"
+extra["springAiVersion"] = "1.1.8"
+
 repositories {
 	mavenCentral()
-	maven {
-		url = uri("https://oss.sonatype.org/content/repositories/snapshots")
-	}
-	maven {
-		url = uri("https://repo.spring.io/milestone")
-	}
-	maven {
-		url = uri("https://repo.spring.io/snapshot")
-	}
 }
 
-extra["snippetsDir"] = file("build/generated-snippets")
-
 dependencies {
-	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+	implementation("org.jetbrains.kotlin:kotlin-stdlib")
 	implementation("com.github.marlonlom:timeago:4.0.0")
 	implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
@@ -48,38 +38,23 @@ dependencies {
 	implementation("com.squareup.moshi:moshi:1.15.1")
 	implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
 	implementation("org.springframework.boot:spring-boot-starter-hateoas")
-	implementation("com.github.marlonlom:timeago")
 	implementation("com.fasterxml.jackson.module:jackson-module-jsonSchema-jakarta")
-	//implementation("ch.rasc:sse-eventbus:2.0.0")
+	// Local build of JogoShugh/sse-eventbus (per-subscriber media types); see libs/.
 	implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-	implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter")
+	implementation("org.springframework.ai:spring-ai-starter-model-openai")
 	implementation("org.starbornag:eventstore")
+	implementation("org.postgresql:r2dbc-postgresql")
 
-
-	val kotlinxHtmlVersion = "0.11.0"
-	// include for JVM target
-	implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:$kotlinxHtmlVersion")
-
-	val logbookVersion = "3.9.0"
-	implementation("org.zalando:logbook-core:$logbookVersion")
-
+	implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.11.0")
+	implementation("org.zalando:logbook-core:3.9.0")
 	implementation("de.undercouch:actson:2.1.0")
-
-//	// include for JS target
-//	implementation("org.jetbrains.kotlinx:kotlinx-html-js:0.10.1")
-//
-//	// include for Common module
-//	implementation("org.jetbrains.kotlinx:kotlinx-html:$kotlinxHtmlVersion")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
-	testImplementation("org.springframework.restdocs:spring-restdocs-webtestclient")
 	testImplementation("com.willowtreeapps.assertk:assertk:0.28.1")
 	testImplementation("org.testcontainers:junit-jupiter")
 	testImplementation("org.testcontainers:postgresql")
 	testImplementation("org.testcontainers:r2dbc")
-
-	implementation("org.postgresql:r2dbc-postgresql")
 }
 
 dependencyManagement {
@@ -111,19 +86,10 @@ tasks.getByName<Jar>("jar") {
 tasks.withType<KotlinCompile> {
 	compilerOptions {
 		freeCompilerArgs.add("-Xjsr305=strict")
-		jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21) // Or just "21"
+		jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
 	}
 }
 
 tasks.withType<Test> {
 	useJUnitPlatform()
-}
-
-tasks.test {
-	outputs.dir(project.extra["snippetsDir"]!!)
-}
-
-tasks.asciidoctor {
-	inputs.dir(project.extra["snippetsDir"]!!)
-	dependsOn(tasks.test)
 }

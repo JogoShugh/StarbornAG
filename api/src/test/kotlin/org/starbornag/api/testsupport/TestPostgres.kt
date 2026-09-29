@@ -2,6 +2,8 @@ package org.starbornag.api.testsupport
 
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
 import io.r2dbc.postgresql.PostgresqlConnectionFactory
+import io.r2dbc.spi.ConnectionFactory
+import org.starbornag.api.StarbornEventTypes
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.starbornag.eventstore.EventStore
 import org.starbornag.eventstore.PgEventStore
@@ -15,7 +17,17 @@ object TestPostgres {
         PostgreSQLContainer("postgres:17-alpine").apply { start() }
 
     /** An initialized event store in a fresh schema of its own. */
-    suspend fun freshEventStore(): EventStore {
+    suspend fun freshEventStore(): EventStore = eventStore(freshSchema())
+
+    /**
+     * An initialized event store with the application's event type names. Calling it again
+     * with the same connection factory simulates a restart: same database, no memory.
+     */
+    suspend fun eventStore(connectionFactory: ConnectionFactory): EventStore =
+        PgEventStore(connectionFactory, typeMapper = StarbornEventTypes.mapper()).also { it.init() }
+
+    /** A connection factory whose search_path points at a new, empty schema. */
+    suspend fun freshSchema(): ConnectionFactory {
         val schema = "test_" + UUID.randomUUID().toString().replace("-", "")
         val connectionFactory = PostgresqlConnectionFactory(
             PostgresqlConnectionConfiguration.builder()
@@ -28,7 +40,7 @@ object TestPostgres {
                 .build()
         )
         connectionFactory.withSession { it.execute("CREATE SCHEMA $schema") }
-        return PgEventStore(connectionFactory).also { it.init() }
+        return connectionFactory
     }
 
     /** Points a Spring Boot test's R2DBC connection at the container. */

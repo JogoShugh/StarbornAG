@@ -53,7 +53,7 @@ dependencies {
 	//implementation("ch.rasc:sse-eventbus:2.0.0")
 	implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 	implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter")
-	implementation("com.eventstore:db-client-java:5.4.1")
+	implementation("org.starbornag:eventstore")
 
 
 	val kotlinxHtmlVersion = "0.11.0"
@@ -79,11 +79,7 @@ dependencies {
 	testImplementation("org.testcontainers:postgresql")
 	testImplementation("org.testcontainers:r2dbc")
 
-	implementation("org.flywaydb:flyway-core")
-	implementation("org.flywaydb:flyway-database-postgresql")
-	implementation("org.postgresql:postgresql")
 	implementation("org.postgresql:r2dbc-postgresql")
-	implementation("org.springframework:spring-jdbc")
 }
 
 dependencyManagement {

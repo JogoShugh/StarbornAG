@@ -1,27 +1,17 @@
 package org.starbornag.api.domain.bed
 
-import org.springframework.stereotype.Component
+import org.starbornag.eventstore.EventStore
 import java.util.*
 
-@Component
-class BedCellStateRepository {
-    private val eventStoreDBRepository = EventStoreDBRepository(BedEvent::class.java)
+/** Loads and stores a bed cell's events. Each cell is one stream, identified by the cell id. */
+class BedCellStateRepository(private val eventStore: EventStore) {
 
-    companion object {
-        private const val STREAM_PREFIX = "cellAggregate"
+    suspend fun fetch(cellId: UUID): BedCellAggregateState {
+        val events = eventStore.getEvents(cellId).filterIsInstance<BedEvent>()
+        return BedCellAggregateState.fromEvents(events.asSequence())
     }
 
-    fun fetch(bedId: UUID, cellId: UUID) : BedCellAggregateState {
-        val streamName = getStreamName(bedId, cellId)
-        val events = eventStoreDBRepository.fetch(streamName)
-        val state = BedCellAggregateState.fromEvents(events)
-        return state
+    suspend fun append(cellId: UUID, events: List<BedEvent>) {
+        eventStore.appendEvents(BedCellAggregate::class, cellId, events)
     }
-
-    fun append(bedId: UUID, cellId: UUID, events: Iterable<BedEvent>) {
-        val streamName = getStreamName(bedId, cellId)
-        eventStoreDBRepository.append(streamName, events, 1)
-    }
-
-    private fun getStreamName(bedId: UUID, cellId: UUID) = "${STREAM_PREFIX}-${bedId}-${cellId}"
 }

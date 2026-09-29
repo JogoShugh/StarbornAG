@@ -30,14 +30,17 @@ data class Harvest(
 class BedCellAggregateEventSourced(
     private val parentBedId: UUID,
     private val id: UUID,
-    private val state: BedCellAggregateState
+    val state: BedCellAggregateState,
+    private val cellStateRepository: BedCellStateRepository
 ) {
     companion object {
-        private val cellStateRepository = BedCellStateRepository()
-
-        fun of(parentBedId: UUID, id: UUID): BedCellAggregateEventSourced {
-            val state = cellStateRepository.fetch(parentBedId, id)
-            return BedCellAggregateEventSourced(parentBedId, id, state)
+        suspend fun of(
+            cellStateRepository: BedCellStateRepository,
+            parentBedId: UUID,
+            id: UUID
+        ): BedCellAggregateEventSourced {
+            val state = cellStateRepository.fetch(id)
+            return BedCellAggregateEventSourced(parentBedId, id, state, cellStateRepository)
         }
     }
 
@@ -101,8 +104,8 @@ class BedCellAggregateEventSourced(
         event: BedEvent
     ) = bedEventBus.publishEvent(command, event)
 
-    private fun storeEvent(event: BedEvent) =
-        cellStateRepository.append(parentBedId, id, listOf(event))
+    private suspend fun storeEvent(event: BedEvent) =
+        cellStateRepository.append(id, listOf(event))
 }
 
 

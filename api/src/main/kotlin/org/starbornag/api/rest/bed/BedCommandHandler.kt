@@ -1,25 +1,21 @@
 package org.starbornag.api.rest.bed
 
 import ch.rasc.sse.eventbus.SseEventBus
-import com.fasterxml.jackson.databind.ObjectMapper
-import kotlinx.coroutines.CoroutineScope
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
-import org.starbornag.api.data.EventRepository
 import org.starbornag.api.domain.bed.BedAggregate
 import org.starbornag.api.domain.bed.BedEventBus
 import org.starbornag.api.domain.bed.BedRepository
+import org.starbornag.eventstore.EventStore
 import java.util.*
 
 @RestController
 class BedCommandHandler(
     private val bedCommandMapper: BedCommandMapper,
     private val sseEventBus: SseEventBus,
-    private val eventRepository: EventRepository,
-    private val objectMapper: ObjectMapper,
-    private val applicationScope: CoroutineScope
+    private val eventStore: EventStore
 ) {
 
     @PostMapping("/api/beds/{bedId}/{action}", consumes = [MediaType.APPLICATION_JSON_VALUE])
@@ -30,7 +26,7 @@ class BedCommandHandler(
     ): ResponseEntity<BedResourceWithCurrentState>  {
         try {
             val bed = BedRepository.getBed(bedId)
-            val bedEventBus = BedEventBus(sseEventBus, eventRepository, objectMapper, applicationScope)
+            val bedEventBus = BedEventBus(sseEventBus, eventStore)
             val command = bedCommandMapper.convertCommand(action, commandPayload)
             bed?.execute(command, bedEventBus) // Execute the command directly
             val resource = BedResourceWithCurrentState.from(bed!!)

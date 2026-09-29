@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.starbornag.api.LogTimer.logNow
-import org.starbornag.api.data.EventRepository
+import org.starbornag.eventstore.EventStore
 import org.starbornag.api.domain.bed.BedEventBus
 import org.starbornag.api.domain.bed.BedRepository
 import org.starbornag.api.domain.bed.command.BedAction
@@ -233,7 +233,7 @@ class NlpCommandHandler(
     chatClientBuilder: ChatClient.Builder,
     private val mapper: ObjectMapper,
     private val sseEventBus: SseEventBus,
-    private val eventRepository: EventRepository,
+    private val eventStore: EventStore,
     private val applicationScope: CoroutineScope,
     private val bedCommandMapper: BedCommandMapper
     ) {
@@ -272,14 +272,14 @@ class NlpCommandHandler(
     private suspend fun plantSeedlingHandler(command: PlantSeedling) {
         val bedId = command.bedId
         val bed = BedRepository.getBed(bedId)
-        val bedEventBus = BedEventBus(sseEventBus, eventRepository, mapper, applicationScope)
+        val bedEventBus = BedEventBus(sseEventBus, eventStore)
         bed?.execute(command, bedEventBus)
     }
 
     private suspend fun bedCommandHandler(command: BedCommand) {
         val bedId = command.bedId
         val bed = BedRepository.getBed(bedId)
-        val bedEventBus = BedEventBus(sseEventBus, eventRepository, mapper, applicationScope)
+        val bedEventBus = BedEventBus(sseEventBus, eventStore)
         bed?.execute(command, bedEventBus)
     }
 

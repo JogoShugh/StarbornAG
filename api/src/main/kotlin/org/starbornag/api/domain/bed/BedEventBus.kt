@@ -2,14 +2,9 @@ package org.starbornag.api.domain.bed
 
 import ch.rasc.sse.eventbus.SseEvent
 import ch.rasc.sse.eventbus.SseEventBus
-import com.fasterxml.jackson.annotation.JsonTypeName
-import com.fasterxml.jackson.databind.ObjectMapper
-import kotlinx.coroutines.CoroutineScope
 import org.starbornag.api.LogTimer.logNow
-import org.starbornag.api.data.Event
-import org.starbornag.api.data.EventRepository
 import org.starbornag.api.domain.bed.command.BedCommand.CellCommand
-import java.util.*
+import org.starbornag.eventstore.EventStore
 
 interface IBedEventBus {
     suspend fun publishEvent(command: CellCommand,
@@ -18,9 +13,7 @@ interface IBedEventBus {
 }
 
 class BedEventBus(private val sseEventBus: SseEventBus,
-                  private val eventRepository: EventRepository,
-                  private val objectMapper: ObjectMapper,
-                  private val applicationScope: CoroutineScope) : IBedEventBus {
+                  private val eventStore: EventStore) : IBedEventBus {
     override suspend fun publishEvent(command: CellCommand, event: BedEvent) {
         val eventName = when(event) {
             is BedCellPlanted -> "plants-${event.bedCellId}"
@@ -30,16 +23,9 @@ class BedEventBus(private val sseEventBus: SseEventBus,
         sseEventBus.handleEvent(SseEvent.of(eventName, event))
     }
 
+    // Each cell is one stream. The in-memory aggregate tracks no version, so any version is accepted.
     override suspend fun storeEvent(event: BedEvent) {
-        val type = getEventType(event) ?: "Event"
-
-        val data = objectMapper.writeValueAsString(event)
-
-        val dataEvent = Event(UUID.randomUUID(), data, event.bedCellId, type, 0)
-        eventRepository.appendEvent(dataEvent.id, dataEvent.data, dataEvent.type, dataEvent.streamId, dataEvent.type, dataEvent.version)
+        eventStore.appendEvents(BedCellAggregate::class, event.bedCellId, listOf(event))
     }
-
-    private fun getEventType(event: Any) =
-        event::class.java.getAnnotation(JsonTypeName::class.java)?.value
 
 }

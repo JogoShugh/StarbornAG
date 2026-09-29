@@ -20,9 +20,9 @@ class PlantSeedlingDeserializationTest {
 
         val expected = CellCommand.PlantSeedling(
             id,
-            date,
-            plantType,
-            plantCultivar,
+            started = date,
+            plantType = plantType,
+            plantCultivar = plantCultivar,
             location = CellsSelection.fromString("A1, A4")
         )
 

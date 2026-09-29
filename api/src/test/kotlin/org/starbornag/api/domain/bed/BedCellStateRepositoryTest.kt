@@ -1,19 +1,38 @@
 package org.starbornag.api.domain.bed
 
-import org.assertj.core.api.Assertions.assertThat
+import assertk.assertThat
+import assertk.assertions.containsExactly
+import assertk.assertions.isEqualTo
+import assertk.assertions.isNull
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
+import org.starbornag.api.testsupport.TestPostgres
 import java.util.*
 
 class BedCellStateRepositoryTest {
+
     @Test
-    // TODO remove dashes from uuids in stream names
-    fun `it populates BedCellAggregate from stream of events`() {
-        val bedId = UUID.fromString("19690258-8d71-4484-b77c-1d8e91036b46")
-        val cellId = UUID.fromString("b4d61a0a-dcdc-44cd-8e23-5e57cf4599be")
+    fun `it populates BedCellAggregateState from the cell's stored events`() = runBlocking {
+        val repository = BedCellStateRepository(TestPostgres.freshEventStore())
+        val bedId = UUID.randomUUID()
+        val cellId = UUID.randomUUID()
+        val events = buildBedEvents(bedId, cellId) {
+            planted(2.months.ago, "Tomato", "Dark Galaxy")
+            watered(2.days.ago, 2.0)
+        }.toList()
 
-        val repo = BedCellStateRepository()
-        val state = repo.fetch(bedId, cellId)
+        repository.append(cellId, events)
+        val state = repository.fetch(cellId)
 
-        assertThat(state).isNotNull()
+        assertThat(state.plantings!!).containsExactly(Planting("Tomato", "Dark Galaxy"))
+        assertThat(state.watered!!.volume).isEqualTo(2.0)
+        assertThat(state.fertilized).isNull()
+    }
+
+    @Test
+    fun `an unknown cell has empty state`() = runBlocking {
+        val repository = BedCellStateRepository(TestPostgres.freshEventStore())
+
+        assertThat(repository.fetch(UUID.randomUUID())).isEqualTo(BedCellAggregateState())
     }
 }

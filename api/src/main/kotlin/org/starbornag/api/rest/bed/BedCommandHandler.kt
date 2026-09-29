@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import org.starbornag.api.domain.bed.BedAggregate
-import org.starbornag.api.domain.bed.BedEventBus
+import org.starbornag.api.sse.BedEventBus
 import org.starbornag.api.domain.bed.BedRepository
 import org.starbornag.eventstore.EventStore
 import java.util.*

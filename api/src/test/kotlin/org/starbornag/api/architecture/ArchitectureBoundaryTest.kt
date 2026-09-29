@@ -15,25 +15,39 @@ class ArchitectureBoundaryTest {
     private val domainFiles
         get() = productionFiles.filter { it.hasPackage("org.starbornag.api.domain..") }
 
-    /**
-     * Domain files that still reach into infrastructure, recorded when the gates were installed.
-     * Shrink this list; never add to it. BedEventBus publishes to the SSE bus directly.
-     */
-    private val knownDomainViolations = setOf("BedEventBus")
+    private val applicationFiles
+        get() = productionFiles.filter { it.hasPackage("org.starbornag.api.application..") }
+
+    private val infrastructure = listOf("org.springframework", "ch.rasc", "io.r2dbc", "org.postgresql")
 
     // Guards the other rules: an empty scope would make every assertFalse pass vacuously.
     @Test
     fun `the scope contains the domain and adapter files`() {
         assertThat(domainFiles.map { it.name }).containsAtLeast("BedAggregate", "BedCellAggregate", "BedEvent")
         assertThat(productionFiles.map { it.name }).containsAtLeast("EventStoreConfig", "BedCommandHandler")
+        assertThat(applicationFiles.map { it.name }).containsAtLeast("Beds", "Cells", "BedEventPublisher")
     }
 
     @Test
-    fun `the domain imports no framework or infrastructure types`() {
-        val forbidden = listOf("org.springframework", "ch.rasc", "io.r2dbc", "org.postgresql", "org.starbornag.api.rest")
+    fun `the domain imports no framework, infrastructure, adapter or application types`() {
+        val forbidden = infrastructure + listOf(
+            "org.starbornag.eventstore",
+            "org.starbornag.api.rest",
+            "org.starbornag.api.sse",
+            "org.starbornag.api.application"
+        )
         domainFiles
-            .filter { it.name !in knownDomainViolations }
+            // Legacy persistence for the old in-memory aggregates; deleted when REST moves to the use cases.
+            .filter { it.name != "BedCellStateRepository" }
             .assertFalse { file -> file.hasImport { import -> forbidden.any { import.name.startsWith(it) } } }
+    }
+
+    @Test
+    fun `the application layer uses ports, not frameworks or adapters`() {
+        val forbidden = infrastructure + listOf("org.starbornag.api.rest", "org.starbornag.api.sse")
+        applicationFiles.assertFalse { file ->
+            file.hasImport { import -> forbidden.any { import.name.startsWith(it) } }
+        }
     }
 
     @Test

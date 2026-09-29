@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.starbornag.api.LogTimer.logNow
 import org.starbornag.eventstore.EventStore
-import org.starbornag.api.domain.bed.BedEventBus
+import org.starbornag.api.sse.BedEventBus
 import org.starbornag.api.domain.bed.BedRepository
 import org.starbornag.api.domain.bed.command.BedAction
 import org.starbornag.api.domain.bed.command.BedCommand

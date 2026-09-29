@@ -1,10 +1,14 @@
 package org.starbornag.api
 
+import ch.rasc.sse.eventbus.SseEventBus
 import io.r2dbc.spi.ConnectionFactory
 import kotlinx.coroutines.runBlocking
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.starbornag.api.application.bed.BedEventPublisher
 import org.starbornag.api.application.bed.Beds
+import org.starbornag.api.application.bed.Cells
+import org.starbornag.api.sse.SseBedEventPublisher
 import org.starbornag.api.domain.bed.BedCellStateRepository
 import org.starbornag.eventstore.EventStore
 import org.starbornag.eventstore.EventTypeMapper
@@ -26,4 +30,10 @@ class EventStoreConfig {
 
     @Bean
     fun beds(eventStore: EventStore) = Beds(eventStore)
+
+    @Bean
+    fun bedEventPublisher(sseEventBus: SseEventBus): BedEventPublisher = SseBedEventPublisher(sseEventBus)
+
+    @Bean
+    fun cells(eventStore: EventStore, beds: Beds, publisher: BedEventPublisher) = Cells(eventStore, beds, publisher)
 }

@@ -5,6 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import org.starbornag.api.application.bed.Beds
 import org.starbornag.api.application.bed.Cells
+import org.starbornag.api.domain.bed.BedEvent
 import org.starbornag.api.testsupport.TestPostgres
 import java.util.*
 
@@ -22,6 +23,9 @@ class GardenWorld {
 
     private val bedIds = mutableMapOf<String, UUID>()
 
+    /** Everything the application announced, through a recording adapter of the publisher port. */
+    val announcements: MutableList<BedEvent> = Collections.synchronizedList(mutableListOf())
+
     init {
         restart()
     }
@@ -32,7 +36,7 @@ class GardenWorld {
     fun restart() = blocking {
         val eventStore = TestPostgres.eventStore(connectionFactory)
         beds = Beds(eventStore)
-        cells = Cells(eventStore, beds)
+        cells = Cells(eventStore, beds) { events -> announcements += events }
     }
 
     fun <T> blocking(block: suspend CoroutineScope.() -> T): T = runBlocking(block = block)

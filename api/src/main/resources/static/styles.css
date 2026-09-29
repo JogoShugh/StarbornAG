@@ -3,7 +3,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh; /* Ensures the grid is centered vertically within the full viewport height */
+    min-height: 100vh; /* Centered in the viewport, but free to scroll when the focus panel is tall */
     margin: 0;
     text-align: center; /* This keeps inline elements like your text centered */
 }
@@ -13,7 +13,9 @@ body {
     flex-direction: column; /* Stack the label and grid vertically */
     justify-content: center; /* Center the content vertically */
     align-items: center; /* Center the content horizontally */
-    height: 100vh; /* Make sure it's vertically centered in the viewport */
+    min-height: 100vh;
+    padding: 12px 0;
+    box-sizing: border-box;
 }
 
 .garden-name {
@@ -198,4 +200,113 @@ body {
 /* tie the view transition to a given CSS class */
 .sample-transition {
    view-transition-name: slide-it;
+}
+/* ---- Bed grid margins: tap a row letter or column number to focus that row or column ---- */
+
+.bed-grid {
+    gap: 2px;
+}
+
+.row-label, .col-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    padding: 4px 6px;
+    font: bold 1.1rem 'Trebuchet MS', sans-serif;
+    color: #4B2E1A;
+    cursor: pointer;
+    user-select: none;
+}
+
+.grid-item, .garden-name {
+    cursor: pointer;
+}
+
+/* ---- Focus panel: where the gardener stands, the pad to move, and care for the cells in focus ---- */
+
+#focus-panel {
+    margin-top: 14px;
+    min-width: 320px;
+    padding: 10px 16px 14px;
+    background: rgba(245, 222, 179, 0.96);
+    border: 3px solid #8B4513;
+    border-radius: 12px;
+    box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.3);
+    color: #3B2C21;
+    font-family: 'Trebuchet MS', sans-serif;
+}
+
+.focus-label {
+    margin: 4px 0;
+    font-size: 1.7rem;
+}
+
+.focus-summary {
+    margin: 0 0 6px;
+}
+
+.focus-message {
+    margin: 4px 0;
+    color: #8B0000;
+    font-weight: bold;
+}
+
+.pad {
+    display: grid;
+    grid-template-columns: repeat(3, 64px);
+    grid-template-rows: repeat(3, 64px);
+    gap: 6px;
+    justify-content: center;
+    margin: 8px auto;
+}
+
+.pad-move {
+    font-size: 30px;
+    border: 2px solid #8B4513;
+    border-radius: 14px;
+    background: #FFF8E7;
+    cursor: pointer;
+}
+
+.pad-move:active {
+    background: #F0D9B5;
+}
+
+.pad-move[data-move="zoom-out"] {
+    background: #E8D5B0;
+}
+
+.action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.care-action {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 6px;
+    background: #FFF8E7;
+    border: 2px solid #8B4513;
+    border-radius: 10px;
+}
+
+.care-action input, .care-action select {
+    width: 96px;
+    padding: 6px;
+    font-size: 1rem;
+}
+
+.care-action button {
+    padding: 10px 12px;
+    font-size: 1.1rem;
+    color: white;
+    background: #2E7D32;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
 }

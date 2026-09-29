@@ -70,6 +70,8 @@ dependencies {
 	testImplementation("io.cucumber:cucumber-junit-platform-engine:7.34.6")
 	testImplementation("io.cucumber:cucumber-picocontainer:7.34.6")
 	testImplementation("com.lemonappdev:konsist:0.17.3")
+	// Reads the bed page's HTML in the page scenarios.
+	testImplementation("org.jsoup:jsoup:1.23.2")
 }
 
 dependencyManagement {

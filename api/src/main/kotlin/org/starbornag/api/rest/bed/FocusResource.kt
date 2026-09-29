@@ -26,6 +26,8 @@ data class FocusResource(
     val bedName: String,
     val focus: String,
     val path: String,
+    /** The focus as a spoken location, such as "B1 to B8"; null for the whole bed. */
+    val location: String?,
     val cells: List<FocusCell>,
     @get:JsonProperty("_links") val links: Map<String, Map<String, String>>,
     @get:JsonProperty("_forms") val forms: Map<String, HalForm>
@@ -42,6 +44,7 @@ data class FocusResource(
                 bedName = bed.name,
                 focus = focus.label,
                 path = focus.path,
+                location = focus.spokenLocation(rows, columns),
                 cells = positions.zip(cells) { position, loaded ->
                     FocusCell(
                         "${rowLetter(position.row)}${position.column}",

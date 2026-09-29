@@ -32,7 +32,7 @@ class BedCommandHandler(
     ): ResponseEntity<BedResourceWithCurrentState> {
         val command = bedCommandMapper.convertCommand(action, commandPayload) as CellCommand
         bedCells.handle(command)
-        return ResponseEntity.ok(resources.currentState(bedId))
+        return resources.ok(resources.currentState(bedId))
     }
 
     /** Subscribes a client to the bed's cell announcements (see SseBedEventPublisher). */

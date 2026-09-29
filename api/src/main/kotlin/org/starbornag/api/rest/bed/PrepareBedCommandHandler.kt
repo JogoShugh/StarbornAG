@@ -1,5 +1,6 @@
 package org.starbornag.api.rest.bed
 
+import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -15,7 +16,8 @@ class PrepareBedCommandHandler(private val beds: Beds, private val resources: Be
     @PostMapping("/api/beds")
     suspend fun handle(@RequestBody command: PrepareBed): ResponseEntity<BedResourceWithCurrentState> {
         val bed = beds.prepare(command)
-        val resource = resources.currentState(bed).apply { includeSchemas() }
-        return ResponseEntity.created(URI("/api/beds/${bed.id}")).body(resource)
+        return ResponseEntity.created(URI("/api/beds/${bed.id}"))
+            .header(HttpHeaders.LINK, BedResources.PROFILE_LINK)
+            .body(resources.currentState(bed))
     }
 }

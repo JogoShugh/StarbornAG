@@ -26,3 +26,7 @@ replay_pid*
 
 # Local build of JogoShugh/sse-eventbus that api compiles against
 !api/libs/*.jar
+
+# Local-only files: a secret with the OpenAI key, and a downloaded minikube binary
+api/scripts/starbornes-secret.sh
+api/minikube-darwin-amd64

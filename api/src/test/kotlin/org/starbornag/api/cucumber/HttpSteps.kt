@@ -1,6 +1,7 @@
 package org.starbornag.api.cucumber
 
 import assertk.assertThat
+import assertk.assertions.contains
 import assertk.assertions.each
 import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
@@ -54,6 +55,78 @@ class HttpSteps(private val world: GardenWorld) {
         send(HttpRequest.newBuilder(uri("/api/beds/$bedId")).GET())
     }
 
+    @Given("a client has planted {string} at {string} in the bed {string}")
+    fun aClientHasPlanted(plantType: String, location: String, bed: String) {
+        if (plantType == "none") return
+        sendCommand("plant", location, world.bedId(bed), plantType)
+        assertThat(response.statusCode()).isEqualTo(200)
+    }
+
+    @When("a client reads the bed named {string}")
+    fun aClientReadsTheBedNamed(bed: String) = aClientReadsTheBed(world.bedId(bed).toString())
+
+    @Given("a client has read the bed named {string}")
+    fun aClientHasReadTheBedNamed(bed: String) {
+        aClientReadsTheBedNamed(bed)
+        assertThat(response.statusCode()).isEqualTo(200)
+    }
+
+    @Then("the response declares the profile {string}")
+    fun theResponseDeclaresTheProfile(profile: String) {
+        assertThat(response.headers().allValues("Link")).contains("<$profile>; rel=\"profile\"")
+    }
+
+    @Then("the response forms are {string}")
+    fun theResponseFormsAre(forms: String) {
+        val offered = body["_forms"]?.fieldNames()?.asSequence()?.toList().orEmpty()
+        assertThat(offered.sorted()).isEqualTo(forms.split(" ").sorted())
+    }
+
+    @Then("the form {string} offers the plant types {string}")
+    fun theFormOffersThePlantTypes(form: String, plantTypes: String) {
+        val offered = body["_forms"]?.get(form)?.get("schema")?.get("properties")?.get("plantType")?.get("enum")
+        assertThat(offered?.map { it.asText() }.orEmpty()).isEqualTo(plantTypes.split(" ").filter { it.isNotEmpty() })
+    }
+
+    @Then("the form {string} posts {string} to the bed's {string} link")
+    fun theFormPostsTo(form: String, contentType: String, link: String) {
+        val theForm = body["_forms"][form]
+        assertThat(theForm["method"].asText()).isEqualTo("POST")
+        assertThat(theForm["contentType"].asText()).isEqualTo(contentType)
+        assertThat(theForm["_links"]["target"]["href"].asText()).isEqualTo(body["_links"][link]["href"].asText())
+    }
+
+    @Then("the form {string} requires {string}")
+    fun theFormRequires(form: String, required: String) {
+        val requiredFields = body["_forms"][form]["schema"]["required"].map { it.asText() }
+        assertThat(requiredFields.sorted()).isEqualTo(required.split(" ").sorted())
+    }
+
+    /** Uses nothing but the form: fills each required field from its schema, then submits to the target. */
+    @When("the client fills the form {string} with location {string} and submits it")
+    fun theClientFillsTheFormAndSubmitsIt(form: String, location: String) {
+        val theForm = body["_forms"][form]
+        val properties = theForm["schema"]["properties"]
+        val payload = theForm["schema"]["required"].associate { field ->
+            field.asText() to properties[field.asText()].exampleValue()
+        } + mapOf("location" to location)
+        val requestBody = HttpRequest.BodyPublishers.ofString(json.writeValueAsString(payload))
+        send(
+            HttpRequest.newBuilder(uri(theForm["_links"]["target"]["href"].asText()))
+                .header("Content-Type", theForm["contentType"].asText())
+                .method(theForm["method"].asText(), requestBody)
+        )
+    }
+
+    private fun JsonNode.exampleValue(): Any =
+        when {
+            has("const") -> this["const"].asText()
+            has("enum") -> this["enum"][0].asText()
+            this["format"]?.asText() == "date-time" -> Instant.now().toString()
+            this["type"]?.asText() in setOf("number", "integer") -> 1
+            else -> "example"
+        }
+
     @Then("the response status is {int}")
     fun theResponseStatusIs(status: Int) {
         assertThat(response.statusCode()).isEqualTo(status)
@@ -93,10 +166,10 @@ class HttpSteps(private val world: GardenWorld) {
             else -> throw IllegalArgumentException("Unknown action '$action'")
         }
 
-    private fun sendCommand(action: String, location: String, bedId: UUID) {
+    private fun sendCommand(action: String, location: String, bedId: UUID, plantType: String = "tomato") {
         val common = mapOf("bedId" to bedId, "started" to Instant.now().toString(), "location" to location)
         val details = when (action) {
-            "plant" -> mapOf("plantType" to "tomato", "plantCultivar" to "Dark Galaxy")
+            "plant" -> mapOf("plantType" to plantType, "plantCultivar" to "Dark Galaxy")
             "water" -> mapOf("volume" to 1.0)
             else -> throw IllegalArgumentException("Unknown action '$action'")
         }

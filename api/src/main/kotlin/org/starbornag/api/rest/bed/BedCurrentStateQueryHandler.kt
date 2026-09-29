@@ -14,7 +14,7 @@ class BedCurrentStateQueryHandler(private val resources: BedResources) {
 
     @GetMapping("/api/beds/{bedId}")
     suspend fun handle(@PathVariable bedId: UUID): ResponseEntity<BedResourceWithCurrentState> =
-        ResponseEntity.ok(resources.currentState(bedId))
+        resources.ok(resources.currentState(bedId))
 
     @GetMapping(
         "/api/beds/{bedId}/negotiable",

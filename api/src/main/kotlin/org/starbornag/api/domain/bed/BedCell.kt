@@ -20,8 +20,10 @@ data class BedCell(
     /** A cell holds one planting at a time; harvesting does not empty it. */
     val isPlanted: Boolean get() = plantings.isNotEmpty()
 
-    fun isGrowing(plantType: String): Boolean =
-        plantings.lastOrNull()?.plantType.equals(plantType, ignoreCase = true)
+    /** The type of plant growing now, in lower case, or null for an empty cell. */
+    val currentPlantType: String? get() = plantings.lastOrNull()?.plantType?.lowercase()
+
+    fun isGrowing(plantType: String): Boolean = currentPlantType == plantType.lowercase()
 
     companion object {
         /**

@@ -9,7 +9,7 @@ Feature: Beds over HTTP
     When a client prepares the bed "Mars" with 2 rows, 4 columns and cell block size 1
     Then the response status is 201
     And the response has a Location header for the bed "Mars"
-    And the response links are "self plant water fertilize harvest history"
+    And the response links are "self plant water fertilize mulch harvest history"
 
   Scenario Outline: A command at a location answers with the bed's updated cells
     Given a client has prepared the bed "Mars" with 2 rows, 4 columns and cell block size 1

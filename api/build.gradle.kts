@@ -53,6 +53,9 @@ dependencies {
 	implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.11.0")
 	implementation("org.zalando:logbook-core:3.9.0")
 	implementation("de.undercouch:actson:2.1.0")
+	// JSON Schema for HAL Schema Forms. 4.x uses Jackson 2 like Spring Boot 3.5; 5.x needs Jackson 3.
+	implementation("com.github.victools:jsonschema-generator:4.38.0")
+	implementation("com.github.victools:jsonschema-module-jackson:4.38.0")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")

@@ -37,8 +37,13 @@ data class FocusResource(
             val rows = bed.rows.size
             val columns = bed.rows.first().size
             val base = "/api/beds/${bed.id}"
-            val links = mapOf("self" to "$base/focus/${focus.path}", "bed" to base) +
-                focus.moves(rows, columns).map { (move, next) -> move.word to "$base/focus/${next.path}" }
+            val links = mapOf(
+                "self" to mapOf("href" to "$base/focus/${focus.path}", "title" to focus.label),
+                "bed" to mapOf("href" to base, "title" to bed.name)
+            ) + focus.moves(rows, columns).map { (move, next) ->
+                // The title names where the move leads, for example "Row B" for zoom-out from B2.
+                move.word to mapOf("href" to "$base/focus/${next.path}", "title" to next.label)
+            }
             return FocusResource(
                 bedId = bed.id,
                 bedName = bed.name,
@@ -53,7 +58,7 @@ data class FocusResource(
                         loaded.state.lastWatered
                     )
                 },
-                links = links.mapValues { (_, href) -> mapOf("href" to href) },
+                links = links,
                 forms = HalSchemaForms.forCells(bed, cells.map { it.state }, focus.spokenLocation(rows, columns))
             )
         }

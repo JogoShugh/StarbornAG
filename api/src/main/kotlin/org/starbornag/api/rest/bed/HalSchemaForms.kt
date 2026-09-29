@@ -55,7 +55,10 @@ object HalSchemaForms {
         return CareAction.entries.filter { it in possible.actions }.associate { action ->
             val spec = specs.getValue(action)
             val schema = schemaFor(spec.command, bed)
-            if (action == CareAction.HARVEST) schema.enumerate("plantType", possible.harvestable)
+            if (action == CareAction.HARVEST) {
+                schema.enumerate("plantType", possible.harvestable)
+                schema.enumerate("plantCultivar", possible.harvestableCultivars)
+            }
             if (location != null) (schema.with("properties").get("location") as ObjectNode)
                 .put("const", location).put("default", location)
             spec.id to HalForm(

@@ -3,8 +3,12 @@ package org.starbornag.api.domain.bed
 /** The care a gardener can give the cells of a bed. */
 enum class CareAction { PLANT, WATER, FERTILIZE, MULCH, HARVEST }
 
-/** What is possible across a bed's cells right now, and which plant types can be harvested. */
-data class PossibleCare(val actions: Set<CareAction>, val harvestable: Set<String>)
+/** What is possible across a bed's cells right now, and which plant types and cultivars can be harvested. */
+data class PossibleCare(
+    val actions: Set<CareAction>,
+    val harvestable: Set<String>,
+    val harvestableCultivars: Set<String> = emptySet()
+)
 
 /**
  * The care possible across [cells], by the same soil rules [BedCell.targets] enforces: planting
@@ -18,5 +22,6 @@ fun possibleCare(cells: List<BedCell>): PossibleCare {
         if (cells.isNotEmpty()) addAll(listOf(CareAction.WATER, CareAction.FERTILIZE, CareAction.MULCH))
         if (harvestable.isNotEmpty()) add(CareAction.HARVEST)
     }
-    return PossibleCare(actions, harvestable)
+    val cultivars = cells.filter { it.isPlanted }.mapNotNull { it.plantings.lastOrNull()?.plantCultivar }.toSortedSet()
+    return PossibleCare(actions, harvestable, cultivars)
 }

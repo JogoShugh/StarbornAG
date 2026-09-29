@@ -310,3 +310,76 @@ body {
     border-radius: 8px;
     cursor: pointer;
 }
+
+/* ---- Pad shapes: a compass for a cell, a column of moves for a row, a row of moves for a column ---- */
+
+.pad[data-shape="vertical"] {
+    grid-template-columns: minmax(64px, auto);
+    grid-template-rows: repeat(3, 64px);
+}
+
+.pad[data-shape="horizontal"] {
+    grid-template-columns: 64px minmax(64px, auto) 64px;
+    grid-template-rows: 64px;
+}
+
+.pad[data-shape="empty"] {
+    display: none;
+}
+
+.pad-move[data-move="zoom-out"] {
+    padding: 0 10px;
+    font-size: 15px;
+    font-weight: bold;
+    color: #4B2E1A;
+}
+
+/* ---- Phone: cells share the width, so a 10-column bed fits a narrow screen ---- */
+
+.bed-grid {
+    width: 96vw;
+    box-sizing: border-box;
+}
+
+.bed-grid .grid-item {
+    width: auto;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    min-width: 0;
+}
+
+.bed-grid .plant-icon {
+    font-size: clamp(12px, 4.5vw, 24pt);
+}
+
+.bed-grid .events {
+    font-size: clamp(8px, 2vw, 14px);
+    overflow: hidden;
+}
+
+@media (max-width: 700px) {
+    .garden-name {
+        font-size: 1.5rem;
+    }
+
+    #focus-panel {
+        min-width: 0;
+        width: 94vw;
+        box-sizing: border-box;
+    }
+
+    .care-action input, .care-action select {
+        width: 80px;
+    }
+}
+
+/* ---- Voice: keep the SpeechKITT microphone clear of the focus panel ---- */
+
+.centered-container {
+    padding-bottom: 120px;
+}
+
+#skitt-ui {
+    left: auto !important;
+    right: 16px !important;
+}

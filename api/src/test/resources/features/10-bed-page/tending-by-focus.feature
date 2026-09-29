@@ -41,6 +41,35 @@ Feature: Tending a bed by moving the focus on the bed page
       | row/D   | north zoom-out                                                         |
       | bed     |                                                                        |
 
+  Scenario Outline: The pad is shaped for the focus, with an empty slot where the bed ends
+    When a gardener opens the focus "<focus>" of the bed page of "Mars"
+    Then the pad is a <shape> pad reading "<slots>"
+
+    Examples:
+      | focus    | shape      | slots                                                                  |
+      | cell/B2  | compass    | northwest north northeast west zoom-out east southwest south southeast |
+      | cell/A1  | compass    | - - - - zoom-out east - south southeast                                |
+      | row/B    | vertical   | north zoom-out south                                                   |
+      | row/A    | vertical   | - zoom-out south                                                       |
+      | column/1 | horizontal | - zoom-out east                                                        |
+      | bed      | empty      |                                                                        |
+
+  Scenario Outline: Zooming out says where it goes
+    When a gardener opens the focus "<focus>" of the bed page of "Mars"
+    Then the pad's "zoom-out" reads "<text>"
+
+    Examples:
+      | focus    | text            |
+      | cell/B2  | Out to Row B    |
+      | row/C    | Out to Whole bed |
+      | column/4 | Out to Whole bed |
+
+  Scenario: A harvest offers only what grows in focus, cultivar included
+    Given a client has planted "tomato" at "A1" in the bed "Mars"
+    When a gardener opens the focus "row/A" of the bed page of "Mars"
+    Then the action "harvest" offers "tomato" to choose as "plantType"
+    And the action "harvest" offers "Dark Galaxy" to choose as "plantCultivar"
+
   Scenario: Walking the pad moves the focus
     Given a gardener has opened the focus "cell/B2" of the bed page of "Mars"
     When the gardener taps the pad's "northeast"

@@ -31,10 +31,19 @@ object FocusPanel {
         "plant" to "🌱 Plant", "water" to "💧 Water", "fertilize" to "🌿 Fertilize",
         "mulch" to "🪵 Mulch", "harvest" to "🧺 Harvest"
     )
-    private val padLayout = listOf(
-        "northwest" to "↖", "north" to "↑", "northeast" to "↗",
-        "west" to "←", "zoom-out" to "⤢", "east" to "→",
+    private val arrows = mapOf(
+        "northwest" to "↖", "north" to "↑", "northeast" to "↗", "west" to "←", "east" to "→",
         "southwest" to "↙", "south" to "↓", "southeast" to "↘"
+    )
+
+    /** Pad slots by focus scope: a compass for a cell, a line for a row or a column, none for the bed. */
+    private val padShapes = mapOf(
+        "cell" to ("compass" to listOf(
+            "northwest", "north", "northeast", "west", "zoom-out", "east", "southwest", "south", "southeast"
+        )),
+        "row" to ("vertical" to listOf("north", "zoom-out", "south")),
+        "column" to ("horizontal" to listOf("west", "zoom-out", "east")),
+        "bed" to ("empty" to emptyList())
     )
     private val filledByThePage = setOf("bedId", "started", "location")
 
@@ -75,24 +84,26 @@ object FocusPanel {
     }
 
     private fun FlowContent.pad(focus: FocusResource) {
+        val (shape, slots) = padShapes.getValue(focus.path.substringBefore("/"))
         div {
             classes = setOf("pad")
-            padLayout.forEach { (move, arrow) ->
-                val href = focus.links[move]?.get("href")
-                if (href == null) {
+            attributes["data-shape"] = shape
+            slots.forEach { move ->
+                val link = focus.links[move]
+                if (link == null) {
                     span { classes = setOf("pad-empty") }
                 } else {
                     button {
                         classes = setOf("pad-move")
                         attributes["data-move"] = move
-                        attributes["aria-label"] = move
+                        attributes["aria-label"] = "$move to ${link["title"]}"
                         hx {
-                            get = href.replaceFirst("/api/beds/", "/beds/")
+                            get = link.getValue("href").replaceFirst("/api/beds/", "/beds/")
                             target = TARGET
                             swap = "outerHTML"
                             pushUrl = true
                         }
-                        +arrow
+                        +(arrows[move] ?: "Out to ${link["title"]}")
                     }
                 }
             }

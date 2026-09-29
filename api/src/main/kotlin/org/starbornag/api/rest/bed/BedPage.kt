@@ -25,6 +25,9 @@ import java.util.*
  * moving the focus swaps only the panel and the highlight.
  */
 object BedPage {
+    private const val CELL_WIDTH_PX = 80
+    private const val LABEL_WIDTH_PX = 40
+
     fun page(bed: BedResourceWithCurrentState, focus: FocusResource): String = createHTML().html {
         head {
             meta(charset = "UTF-8")
@@ -65,7 +68,9 @@ object BedPage {
                 ext = "sse"
                 sseConnect = "/api/beds/${bed.id}/events?clientId=${UUID.randomUUID()}"
             }
-            attributes["style"] = "grid-template-columns: auto repeat($columns, 1fr);"
+            // Cells share the width, so a wide bed shrinks to fit a phone instead of overflowing it.
+            attributes["style"] = "grid-template-columns: auto repeat($columns, minmax(0, 1fr)); " +
+                "max-width: ${columns * CELL_WIDTH_PX + LABEL_WIDTH_PX}px;"
             div { classes = setOf("grid-corner") }
             for (column in 1..columns) {
                 div {

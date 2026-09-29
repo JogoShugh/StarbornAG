@@ -3,14 +3,17 @@
 Ideas that came up while rebuilding StarbornAG and were parked on purpose.
 Newest first. Move an item out when it becomes a slice.
 
-## Bed page polish (seen in the first screenshots of the focus page)
+## Voice navigation (UX option D, planned as navigation slice N4)
 
-- **Phone width.** 10 columns of 75 px cells do not fit a phone; the grid needs to scale down.
-- **Row and column pads.** A row focus shows an empty top row in the pad; show ↑/↓ only (←/→ for a
-  column), with zoom-out beside them.
-- **Microphone button.** The SpeechKITT mic sits over the bottom-left corner of the focus panel.
-- **Zoom-out label.** The ⤢ symbol reads small; a label such as "Zoom out" or "Row A ↑" is clearer.
-- **Harvest cultivar.** The harvest form asks for the cultivar; pre-fill it from what grows in focus.
+- **Fixed phrase grammar, parsed in Kotlin on the server.** The browser sends recognized speech
+  for the current focus; phrases such as "north", "southeast", "next", "back", "go to B4",
+  "row two", "column five", "whole bed", "zoom out", "watered", "mulched with straw" and
+  "planted tomato Dark Galaxy here" move the focus or give care there, instantly and without a
+  model. Anything that does not match falls back to the AI path (`ai/plant`).
+- Tested with Gherkin tables of phrases, like the focus moves.
+- Spoken confirmation ("B4, tomato, watered two days ago") and no need to say "starborn" before
+  every phrase while tending.
+- Builds on the focus resource: every phrase maps to a move link or a form of the current focus.
 
 ## Hypermedia and HEART + RISE
 

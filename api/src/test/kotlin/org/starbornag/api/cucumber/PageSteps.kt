@@ -115,6 +115,26 @@ class PageSteps(private val world: GardenWorld) {
         assertThat(offered.sorted()).isEqualTo(moves.split(" ").filter { it.isNotEmpty() }.sorted())
     }
 
+    /** The pad's slots in reading order: a move's name, or "-" for an empty slot. */
+    @Then("the pad is a {word} pad reading {string}")
+    fun thePadReads(shape: String, slots: String) {
+        val pad = page.selectFirst(".pad")!!
+        assertThat(pad.attr("data-shape")).isEqualTo(shape)
+        val read = pad.children().map { if (it.hasClass("pad-move")) it.attr("data-move") else "-" }
+        assertThat(read.joinToString(" ")).isEqualTo(slots)
+    }
+
+    @Then("the pad's {string} reads {string}")
+    fun thePadMoveReads(move: String, text: String) {
+        assertThat(page.selectFirst(".pad-move[data-move=$move]")!!.text()).isEqualTo(text)
+    }
+
+    @Then("the action {string} offers {string} to choose as {string}")
+    fun theActionOffersToChoose(action: String, choices: String, field: String) {
+        val select = page.selectFirst("form.care-action[data-action=$action] select[name=$field]")
+        assertThat(select?.select("option")?.map { it.text() }?.joinToString(" ")).isEqualTo(choices)
+    }
+
     @Then("the action bar offers {string}")
     fun theActionBarOffers(actions: String) {
         assertThat(page.select("form.care-action").map { it.attr("data-action") }).isEqualTo(actions.split(" "))

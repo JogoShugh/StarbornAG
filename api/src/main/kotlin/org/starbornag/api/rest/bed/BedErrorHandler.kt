@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.starbornag.api.application.bed.UnknownBed
 import org.starbornag.api.domain.bed.BedAlreadyExists
+import org.starbornag.api.domain.bed.CellAlreadyPlanted
+import org.starbornag.api.domain.bed.NothingToHarvest
 import org.starbornag.api.domain.bed.LocationOutsideBed
 import java.util.*
 
@@ -25,6 +27,11 @@ class BedErrorHandler {
     @ExceptionHandler(LocationOutsideBed::class)
     fun locationOutsideBed(e: LocationOutsideBed): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.message)
+
+    /** The command is not possible in the cells' current state (HEART: 409, re-sync and re-derive). */
+    @ExceptionHandler(CellAlreadyPlanted::class, NothingToHarvest::class)
+    fun notPossibleNow(e: IllegalStateException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.message)
 
     @ExceptionHandler(BedAlreadyExists::class)
     fun bedAlreadyExists(e: BedAlreadyExists): ProblemDetail =

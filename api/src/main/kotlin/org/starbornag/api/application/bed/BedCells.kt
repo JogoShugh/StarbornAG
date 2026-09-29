@@ -20,7 +20,8 @@ class BedCells(
      * Records the command on every cell its location names, announces each cell's events once
      * they are stored, and returns all recorded events.
      *
-     * The location is checked against the bed before anything is recorded. After that, each cell
+     * The location and the soil rules (see BedCell.targets) are checked before anything is recorded,
+     * so a planting into an occupied cell records nothing. After that, each cell
      * is its own stream and its own transaction: this scales, but a failure part way leaves the
      * earlier cells recorded. The caller retries; atomicity across cells is deliberately not offered.
      *
@@ -29,7 +30,8 @@ class BedCells(
      */
     suspend fun handle(command: CellCommand): List<BedEvent> {
         val bed = beds.find(command.bedId) ?: throw UnknownBed(command.bedId)
-        return bed.cellsAt(command.location).flatMap { cellId ->
+        val named = bed.cellsAt(command.location).map { find(it) ?: BedCell(it, bed.id) }
+        return BedCell.targets(command, named).map { it.id }.flatMap { cellId ->
             val decide = BedCell.decide(bed.id, cellId, command)
             var recorded = emptyList<BedEvent>()
             repository.handle(cellId) { cell -> decide(cell).also { recorded = it } }

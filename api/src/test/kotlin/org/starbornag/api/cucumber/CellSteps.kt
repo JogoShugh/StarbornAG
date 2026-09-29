@@ -10,6 +10,8 @@ import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
 import org.starbornag.api.application.bed.UnknownBed
 import org.starbornag.api.domain.bed.BedCell
+import org.starbornag.api.domain.bed.CellAlreadyPlanted
+import org.starbornag.api.domain.bed.NothingToHarvest
 import org.starbornag.api.domain.bed.LocationOutsideBed
 import org.starbornag.api.domain.bed.command.BedCommand.CellCommand
 import org.starbornag.api.domain.bed.command.CellPosition
@@ -69,6 +71,31 @@ class CellSteps(private val world: GardenWorld) {
         val cell = world.cells.find(cellId)!!
         assertThat(cell.plantings.joinToString(", ")).isEqualTo(expected["planting"])
         assertThat(cell.lastWatered?.volume).isEqualTo(expected["last watered volume"]!!.toDouble())
+    }
+
+    @When("{word} is harvested at {string} in the bed {string}")
+    fun isHarvested(plantType: String, location: String, bed: String) = run(
+        CellCommand.Harvest(
+            world.bedId(bed), started = Date(), plantType = plantType, plantCultivar = "", quantity = 1,
+            location = CellsSelection.fromString(location)
+        )
+    )
+
+    @Then("the command is rejected because a cell is already planted")
+    fun rejectedBecauseACellIsAlreadyPlanted() {
+        assertThat(commandOutcome!!.exceptionOrNull()).isNotNull().isInstanceOf(CellAlreadyPlanted::class)
+    }
+
+    @Then("the command is rejected because nothing there can be harvested")
+    fun rejectedBecauseNothingCanBeHarvested() {
+        assertThat(commandOutcome!!.exceptionOrNull()).isNotNull().isInstanceOf(NothingToHarvest::class)
+    }
+
+    @Then("the cell {string} of the bed {string} is still growing {string}")
+    fun theCellIsStillGrowing(location: String, bed: String, planting: String) = world.blocking {
+        val position = CellPosition.of(location)
+        val cellId = world.beds.find(world.bedId(bed))!!.rows[position.row - 1][position.column - 1]
+        assertThat(world.cells.find(cellId)!!.plantings.last().toString()).isEqualTo(planting)
     }
 
     @Then("the command is rejected because the bed does not exist")

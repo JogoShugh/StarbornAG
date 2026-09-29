@@ -18,7 +18,6 @@ Feature: Caring for cells
       | water     | A1 to B2 | 1:1 1:2 2:1 2:2 |
       | fertilize | B3 B5    | 2:3 2:5         |
       | mulch     | 4:8      | 4:8             |
-      | harvest   | c7       | 3:7             |
 
   Scenario: A command without a location applies to every cell
     When "water" is done everywhere in the bed "Jupiter"

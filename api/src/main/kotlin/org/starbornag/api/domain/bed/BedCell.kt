@@ -17,7 +17,27 @@ data class BedCell(
     val lastMulched: BedMulched? = null,
     val harvests: List<BedHarvested> = emptyList()
 ) {
+    /** A cell holds one planting at a time; harvesting does not empty it. */
+    val isPlanted: Boolean get() = plantings.isNotEmpty()
+
+    fun isGrowing(plantType: String): Boolean =
+        plantings.lastOrNull()?.plantType.equals(plantType, ignoreCase = true)
+
     companion object {
+        /**
+         * The soil rules for a command over the [named] cells: planting needs every named cell to be
+         * empty, and a harvest applies only to the named cells growing the harvested plant.
+         * Returns the cells to record on, or rejects the whole command.
+         */
+        fun targets(command: CellCommand, named: List<BedCell>): List<BedCell> =
+            when (command) {
+                is CellCommand.PlantSeedling -> named.onEach { if (it.isPlanted) throw CellAlreadyPlanted(it.id) }
+                is CellCommand.Harvest -> named
+                    .filter { it.isGrowing(command.plantType) }
+                    .ifEmpty { throw NothingToHarvest(command.plantType) }
+                else -> named
+            }
+
         fun evolve(cell: BedCell?, event: BedEvent): BedCell {
             val current = cell ?: BedCell(event.bedCellId, event.bedId)
             return when (event) {
@@ -30,8 +50,9 @@ data class BedCell(
             }
         }
 
-        /** Every care command records exactly one event on the cell. */
-        fun decide(bedId: UUID, cellId: UUID, command: CellCommand): (BedCell?) -> List<BedEvent> = { _ ->
+        /** Records one event on the cell, after checking the soil rules against its current state. */
+        fun decide(bedId: UUID, cellId: UUID, command: CellCommand): (BedCell?) -> List<BedEvent> = { cell ->
+            targets(command, listOf(cell ?: BedCell(cellId, bedId)))
             listOf(eventFor(bedId, cellId, command))
         }
 
@@ -50,3 +71,8 @@ data class BedCell(
             }
     }
 }
+
+class CellAlreadyPlanted(val cellId: UUID) : IllegalStateException("Cell $cellId is already planted")
+
+class NothingToHarvest(val plantType: String) :
+    IllegalStateException("None of the named cells is growing $plantType")

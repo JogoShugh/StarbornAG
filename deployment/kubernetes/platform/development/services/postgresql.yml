@@ -1,34 +1,33 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: postgres-config
+  name: starborn-events-config
   labels:
-    db: polar-postgres
+    db: starborn-events
 data:
   init.sql: |
-    CREATE DATABASE polardb_catalog;
-    CREATE DATABASE polardb_order;
+    CREATE DATABASE starborn_events;
 
 ---
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: polar-postgres
+  name: starborn-events
   labels:
-    db: polar-postgres
+    db: starborn-events
 spec:
   selector:
     matchLabels:
-      db: polar-postgres
+      db: starborn-events
   template:
     metadata:
       labels:
-        db: polar-postgres
+        db: starborn-events
     spec:
       containers:
-        - name: polar-postgres
-          image: postgres:14.12
+        - name: starborn-events
+          image: postgres:17-alpine
           env:
             - name: POSTGRES_USER
               value: user
@@ -43,24 +42,24 @@ spec:
               memory: 120Mi
           volumeMounts:
             - mountPath: /docker-entrypoint-initdb.d
-              name: postgres-config-volume
+              name: starborn-events-config-volume
       volumes:
-        - name: postgres-config-volume
+        - name: starborn-events-config-volume
           configMap:
-            name: postgres-config
+            name: starborn-events-config
 
 ---
 
 apiVersion: v1
 kind: Service
 metadata:
-  name: polar-postgres
+  name: starborn-events
   labels:
-    db: polar-postgres
+    db: starborn-events
 spec:
   type: ClusterIP
   selector:
-    db: polar-postgres
+    db: starborn-events
   ports:
     - protocol: TCP
       port: 5432

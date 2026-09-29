@@ -1,28 +1,26 @@
-version: "3.8"
+# Local run: build the image first (see api/runNoTest.sh), then
+#   OPENAI_API_KEY=... docker compose -f deployment/docker/docker-compose.yml up
 services:
 
   # Applications
 
   starbornag:
     depends_on:
-      - starborn-events
+      starborn-events:
+        condition: service_healthy
     image: "starbornag"
     container_name: "starbornag"
     ports:
-      - 9002:9002
-      - 8002:8002
       - 8080:8080
     environment:
-      # Buildpacks environment variable to enable debug through a socket on port 8002
-      - BPL_DEBUG_ENABLED=true
-      - BPL_DEBUG_PORT=8002
-      - SPRING_R2DBC_URL=r2dbc:postgresql://polar-postgres:5432/starborn_events
-      - SPRING_FLYWAY_URL=jdbc:postgresql://polar-postgres:5432/starborn_events
-  
+      # The event store creates its tables and append_event function at startup.
+      - SPRING_R2DBC_URL=r2dbc:postgresql://starborn-events:5432/starborn_events
+      - SPRING_AI_OPENAI_API_KEY=${OPENAI_API_KEY}
+
   # Backing Services
 
   starborn-events:
-    image: "postgres:14.12"
+    image: "postgres:14.12"  # the existing local data volume was created by PostgreSQL 14
     container_name: "starborn-events"
     ports:
       - 5432:5432
@@ -31,3 +29,8 @@ services:
       - POSTGRES_PASSWORD=password
     volumes:
       - ./postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d starborn_events"]
+      interval: 2s
+      timeout: 3s
+      retries: 15

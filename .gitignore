@@ -23,3 +23,6 @@
 hs_err_pid*
 replay_pid*
 .claude/tdd-events.log
+
+# Local build of JogoShugh/sse-eventbus that api compiles against
+!api/libs/*.jar

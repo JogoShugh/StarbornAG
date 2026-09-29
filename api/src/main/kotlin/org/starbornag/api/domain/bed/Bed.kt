@@ -1,6 +1,8 @@
 package org.starbornag.api.domain.bed
 
 import org.starbornag.api.domain.bed.command.BedCommand.PrepareBed
+import org.starbornag.api.domain.bed.command.CellPosition
+import org.starbornag.api.domain.bed.command.CellsSelection
 import org.starbornag.api.domain.bed.command.Dimensions
 import java.util.*
 
@@ -43,4 +45,21 @@ data class Bed(
     }
 }
 
+/**
+ * The ids of the cells a location names, in row-major order, or of every cell when there is
+ * no location. Fails as a whole if any named cell lies outside the bed.
+ */
+fun Bed.cellsAt(location: CellsSelection?): List<UUID> {
+    val rowCount = rows.size
+    val columnCount = rows.firstOrNull()?.size ?: 0
+    val positions = location?.streamCellPositions(rowCount, columnCount)?.distinct()?.toList()
+        ?: return rows.flatten()
+    positions.firstOrNull { it.row !in 1..rowCount || it.column !in 1..columnCount }
+        ?.let { throw LocationOutsideBed(id, it) }
+    return positions.map { rows[it.row - 1][it.column - 1] }
+}
+
 class BedAlreadyExists(val bedId: UUID) : IllegalStateException("Bed $bedId has already been prepared")
+
+class LocationOutsideBed(val bedId: UUID, val position: CellPosition) :
+    IllegalArgumentException("Cell ${position.row}:${position.column} is outside bed $bedId")

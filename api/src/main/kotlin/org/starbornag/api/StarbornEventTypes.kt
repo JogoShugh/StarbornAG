@@ -7,6 +7,7 @@ import org.starbornag.api.domain.bed.BedCellWatered
 import org.starbornag.api.domain.bed.BedFertilized
 import org.starbornag.api.domain.bed.BedHarvested
 import org.starbornag.api.domain.bed.BedMulched
+import org.starbornag.api.domain.bed.Cell
 import org.starbornag.eventstore.EventTypeMapper
 
 /**
@@ -18,6 +19,7 @@ object StarbornEventTypes {
         .register(Bed::class, "bed")
         .register(Bed.Event.BedPrepared::class, "bedPrepared")
         .register(BedCellAggregate::class, "bedCell")
+        .register(Cell::class, "cell")
         .register(BedCellPlanted::class, "planted")
         .register(BedCellWatered::class, "watered")
         .register(BedFertilized::class, "fertilized")

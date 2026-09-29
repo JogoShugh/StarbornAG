@@ -58,59 +58,41 @@ class CellsSelection(
     private val hasCellEnd get() = cellEnd != null
     private val hasCellRange get() = cellRange != null
 
-    suspend fun streamCellPositions(rowCount: Int, columnCount: Int): Sequence<CellPosition> {
-        return sequence {
-            if (hasCells) {
-                cells?.forEach {
-                    yield(it)
-                }
-            }
+    /**
+     * Every position the selection names, in this order: listed cells, whole rows, whole columns,
+     * the single cell, then the range (a cell range, a start and end cell, one column or one row).
+     */
+    fun streamCellPositions(rowCount: Int, columnCount: Int): Sequence<CellPosition> =
+        listedCells() + wholeRows(columnCount) + wholeColumns(rowCount) + singleCell() +
+            rangeCells(range(rowCount, columnCount))
 
-            if (hasRows) {
-                rows?.forEach { row ->
-                    for (col in 1..columnCount)
-                        yield(CellPosition(row, col))
-                }
-            }
+    private fun listedCells(): Sequence<CellPosition> =
+        if (hasCells) cells.orEmpty().asSequence() else emptySequence()
 
-            if (hasColumns) {
-                columns?.forEach { column ->
-                    for (row in 1..rowCount)
-                        yield(CellPosition(row, column))
-                }
-            }
+    private fun wholeRows(columnCount: Int): Sequence<CellPosition> =
+        if (!hasRows) emptySequence()
+        else rows.orEmpty().asSequence().flatMap { row -> (1..columnCount).asSequence().map { CellPosition(row, it) } }
 
-            if (hasCell) {
-                yield(cell!!)
-            }
+    private fun wholeColumns(rowCount: Int): Sequence<CellPosition> =
+        if (!hasColumns) emptySequence()
+        else columns.orEmpty().asSequence().flatMap { col -> (1..rowCount).asSequence().map { CellPosition(it, col) } }
 
-            val range = when {
-                isRangeByCellRange -> cellRange!!
-                isRangeByCellStartAndEnd -> CellRange(cellStart!!, cellEnd!!)
-                else -> when {
-                    hasColumn -> CellRange(
-                        CellPosition(1, column!!),
-                        CellPosition(rowCount, column)
-                    )
-                    hasRow -> CellRange(
-                        CellPosition(row!!, 1),
-                        CellPosition(row, columnCount)
-                    )
+    private fun singleCell(): Sequence<CellPosition> =
+        if (hasCell) sequenceOf(cell!!) else emptySequence()
 
-                    else -> {
-                        null
-                    }
-                }
-            }
+    private fun range(rowCount: Int, columnCount: Int): CellRange? =
+        when {
+            isRangeByCellRange -> cellRange!!
+            isRangeByCellStartAndEnd -> CellRange(cellStart!!, cellEnd!!)
+            hasColumn -> CellRange(CellPosition(1, column!!), CellPosition(rowCount, column))
+            hasRow -> CellRange(CellPosition(row!!, 1), CellPosition(row, columnCount))
+            else -> null
+        }
 
-            range?.let {
-                val (start, end) = range
-                for (row in start.row..end.row) {
-                    for (col in start.column..end.column) {
-                        yield(CellPosition(row, col))
-                    }
-                }
-            }
+    private fun rangeCells(range: CellRange?): Sequence<CellPosition> {
+        val (start, end) = range ?: return emptySequence()
+        return (start.row..end.row).asSequence().flatMap { row ->
+            (start.column..end.column).asSequence().map { col -> CellPosition(row, col) }
         }
     }
 }

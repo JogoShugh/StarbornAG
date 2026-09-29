@@ -4,6 +4,7 @@ import io.r2dbc.spi.ConnectionFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import org.starbornag.api.application.bed.Beds
+import org.starbornag.api.application.bed.Cells
 import org.starbornag.api.testsupport.TestPostgres
 import java.util.*
 
@@ -14,19 +15,25 @@ import java.util.*
 class GardenWorld {
     private val connectionFactory: ConnectionFactory = blocking { TestPostgres.freshSchema() }
 
-    var beds: Beds = startApplication()
+    lateinit var beds: Beds
+        private set
+    lateinit var cells: Cells
         private set
 
     private val bedIds = mutableMapOf<String, UUID>()
 
+    init {
+        restart()
+    }
+
     fun bedId(name: String): UUID = bedIds.getOrPut(name) { UUID.randomUUID() }
 
     /** A new set of use cases over the same database: nothing survives but what was stored. */
-    fun restart() {
-        beds = startApplication()
+    fun restart() = blocking {
+        val eventStore = TestPostgres.eventStore(connectionFactory)
+        beds = Beds(eventStore)
+        cells = Cells(eventStore, beds)
     }
-
-    private fun startApplication() = blocking { Beds(TestPostgres.eventStore(connectionFactory)) }
 
     fun <T> blocking(block: suspend CoroutineScope.() -> T): T = runBlocking(block = block)
 }

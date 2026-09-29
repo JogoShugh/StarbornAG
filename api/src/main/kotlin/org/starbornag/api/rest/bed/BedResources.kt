@@ -7,6 +7,7 @@ import org.starbornag.api.application.bed.BedCells
 import org.starbornag.api.application.bed.Beds
 import org.starbornag.api.application.bed.UnknownBed
 import org.starbornag.api.domain.bed.Bed
+import org.starbornag.api.domain.bed.Focus
 import java.util.*
 
 /**
@@ -25,7 +26,7 @@ class BedResources(private val beds: Beds, private val bedCells: BedCells) {
     suspend fun currentState(bed: Bed): BedResourceWithCurrentState {
         val cells = bed.rows.map { row -> row.map { bedCells.load(bed.id, it) } }
         return BedResourceWithCurrentState.from(bed, cells).apply {
-            forms.putAll(HalSchemaForms.forBed(bed, cells.flatten().map { it.state }))
+            forms.putAll(HalSchemaForms.forCells(bed, cells.flatten().map { it.state }))
         }
     }
 
@@ -37,4 +38,19 @@ class BedResources(private val beds: Beds, private val bedCells: BedCells) {
     }
 
     suspend fun history(bedId: UUID): BedResourceWithHistory = BedResourceWithHistory.from(bed(bedId))
+
+    /**
+     * The focus at [path] ("cell/B4", "row/B", "column/4" or "bed"), with only its cells loaded.
+     *
+     * @throws org.starbornag.api.domain.bed.FocusOutsideBed when the focus is not part of the bed.
+     */
+    suspend fun focus(bedId: UUID, path: String): FocusResource {
+        val bed = bed(bedId)
+        val rows = bed.rows.size
+        val columns = bed.rows.first().size
+        val focus = Focus.fromPath(path, rows, columns)
+        val positions = focus.cells(rows, columns)
+        val cells = positions.map { bedCells.load(bed.id, bed.rows[it.row - 1][it.column - 1]) }
+        return FocusResource.of(bed, focus, positions, cells)
+    }
 }

@@ -102,14 +102,49 @@ class HttpSteps(private val world: GardenWorld) {
         assertThat(requiredFields.sorted()).isEqualTo(required.split(" ").sorted())
     }
 
+    @When("a client reads the focus {string} of the bed {string}")
+    fun aClientReadsTheFocus(focus: String, bed: String) {
+        send(HttpRequest.newBuilder(uri("/api/beds/${world.bedId(bed)}/focus/$focus")).GET())
+    }
+
+    @Given("a client has read the focus {string} of the bed {string}")
+    fun aClientHasReadTheFocus(focus: String, bed: String) {
+        aClientReadsTheFocus(focus, bed)
+        assertThat(response.statusCode()).isEqualTo(200)
+    }
+
+    @Then("the focus is labelled {string}")
+    fun theFocusIsLabelled(label: String) {
+        assertThat(body["focus"].asText()).isEqualTo(label)
+    }
+
+    @Then("the move links are {string}")
+    fun theMoveLinksAre(moves: String) {
+        val links = body["_links"].fieldNames().asSequence().toList() - setOf("self", "bed")
+        assertThat(links.sorted()).isEqualTo(moves.split(" ").filter { it.isNotEmpty() }.sorted())
+    }
+
+    @When("the client follows the {string} link")
+    fun theClientFollowsTheLink(rel: String) {
+        send(HttpRequest.newBuilder(uri(body["_links"][rel]["href"].asText())).GET())
+        assertThat(response.statusCode()).isEqualTo(200)
+    }
+
+    /** The location comes from the form itself: a focus fixes it in the schema. */
+    @When("the client fills the form {string} and submits it")
+    fun theClientFillsTheFormAndSubmitsIt(form: String) = fillAndSubmit(form, location = null)
+
     /** Uses nothing but the form: fills each required field from its schema, then submits to the target. */
     @When("the client fills the form {string} with location {string} and submits it")
-    fun theClientFillsTheFormAndSubmitsIt(form: String, location: String) {
+    fun theClientFillsTheFormWithLocationAndSubmitsIt(form: String, location: String) = fillAndSubmit(form, location)
+
+    private fun fillAndSubmit(form: String, location: String?) {
         val theForm = body["_forms"][form]
         val properties = theForm["schema"]["properties"]
+        val formLocation = properties["location"]?.get("default")?.asText()
         val payload = theForm["schema"]["required"].associate { field ->
             field.asText() to properties[field.asText()].exampleValue()
-        } + mapOf("location" to location)
+        } + mapOf("location" to (location ?: formLocation))
         val requestBody = HttpRequest.BodyPublishers.ofString(json.writeValueAsString(payload))
         send(
             HttpRequest.newBuilder(uri(theForm["_links"]["target"]["href"].asText()))

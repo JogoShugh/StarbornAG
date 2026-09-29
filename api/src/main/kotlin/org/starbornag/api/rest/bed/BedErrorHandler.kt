@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.starbornag.api.application.bed.UnknownBed
 import org.starbornag.api.domain.bed.BedAlreadyExists
 import org.starbornag.api.domain.bed.CellAlreadyPlanted
+import org.starbornag.api.domain.bed.FocusOutsideBed
 import org.starbornag.api.domain.bed.NothingToHarvest
 import org.starbornag.api.domain.bed.LocationOutsideBed
 import java.util.*
@@ -20,8 +21,8 @@ class BedErrorHandler {
     @ExceptionHandler(UnknownBed::class)
     fun unknownBed(e: UnknownBed): ProblemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.message)
 
-    @ExceptionHandler(UnknownBedCell::class)
-    fun unknownBedCell(e: UnknownBedCell): ProblemDetail =
+    @ExceptionHandler(UnknownBedCell::class, FocusOutsideBed::class)
+    fun unknownBedCell(e: NoSuchElementException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.message)
 
     @ExceptionHandler(LocationOutsideBed::class)

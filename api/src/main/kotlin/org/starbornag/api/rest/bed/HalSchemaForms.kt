@@ -46,13 +46,18 @@ object HalSchemaForms {
         SchemaGeneratorConfigBuilder(SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON).with(JacksonModule()).build()
     )
 
-    /** Forms in CareAction order, for the actions [cells] allow. */
-    fun forBed(bed: Bed, cells: List<BedCell>): Map<String, HalForm> {
+    /**
+     * Forms in CareAction order, for the actions [cells] allow. With a [location], the forms act on
+     * exactly those cells: the location is fixed in each schema, as its const and default.
+     */
+    fun forCells(bed: Bed, cells: List<BedCell>, location: String? = null): Map<String, HalForm> {
         val possible = possibleCare(cells)
         return CareAction.entries.filter { it in possible.actions }.associate { action ->
             val spec = specs.getValue(action)
             val schema = schemaFor(spec.command, bed)
             if (action == CareAction.HARVEST) schema.enumerate("plantType", possible.harvestable)
+            if (location != null) (schema.with("properties").get("location") as ObjectNode)
+                .put("const", location).put("default", location)
             spec.id to HalForm(
                 links = mapOf("target" to mapOf("href" to "/api/beds/${bed.id}/${spec.path}")),
                 method = "POST",

@@ -20,7 +20,7 @@ services:
   # Backing Services
 
   starborn-events:
-    image: "postgres:14.12"  # the existing local data volume was created by PostgreSQL 14
+    image: "postgres:17-alpine"
     container_name: "starborn-events"
     ports:
       - 5432:5432

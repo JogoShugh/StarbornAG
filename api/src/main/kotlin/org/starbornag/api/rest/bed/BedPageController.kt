@@ -60,7 +60,12 @@ class BedPageController(
     private suspend fun render(bedId: UUID, path: String, fragmentOnly: Boolean): ResponseEntity<String> {
         val focus = resources.focus(bedId, path)
         val html = if (fragmentOnly) FocusPanel.fragment(focus) else BedPage.page(resources.currentState(bedId), focus)
-        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html)
+        return ResponseEntity.ok().contentType(HTML).body(html)
+    }
+
+    private companion object {
+        /** Plant icons and pad arrows are emoji and arrows: without a charset, browsers fall back to Latin-1. */
+        val HTML = MediaType(MediaType.TEXT_HTML, Charsets.UTF_8)
     }
 
     /**
@@ -83,6 +88,6 @@ class BedPageController(
             e.message
         }
         val html = FocusPanel.fragment(resources.focus(bedId, path), message)
-        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html)
+        return ResponseEntity.ok().contentType(HTML).body(html)
     }
 }

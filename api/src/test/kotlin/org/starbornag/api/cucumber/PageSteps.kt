@@ -26,6 +26,7 @@ class PageSteps(private val world: GardenWorld) {
     private val http = HttpClient.newHttpClient()
     private lateinit var page: Document
     private var addressBar: String = ""
+    private var lastContentType: String = ""
 
     @ParameterType("the cell [A-Z]\\d+|the row [A-Z]|the column \\d+|the bed name")
     fun target(text: String): String = when {
@@ -96,6 +97,18 @@ class PageSteps(private val world: GardenWorld) {
         assertThat(addressBar.substringAfter("/focus/")).isEqualTo(path)
     }
 
+    /** Both the Content-Type header and the page's own <meta charset>, as a browser reads them. */
+    @Then("the page declares the character set {string}")
+    fun thePageDeclaresTheCharacterSet(charset: String) {
+        assertThat(lastContentType.contains("charset=$charset", ignoreCase = true)).isEqualTo(true)
+        assertThat(page.selectFirst("meta[charset]")?.attr("charset")?.uppercase()).isEqualTo(charset)
+    }
+
+    @Then("the last answer declares the character set {string}")
+    fun theLastAnswerDeclaresTheCharacterSet(charset: String) {
+        assertThat(lastContentType.contains("charset=$charset", ignoreCase = true)).isEqualTo(true)
+    }
+
     @Then("the pad offers {string}")
     fun thePadOffers(moves: String) {
         val offered = page.select(".pad-move").map { it.attr("data-move") }
@@ -158,6 +171,7 @@ class PageSteps(private val world: GardenWorld) {
 
     private fun send(request: HttpRequest.Builder): HttpResponse<String> =
         http.send(request.build(), HttpResponse.BodyHandlers.ofString())
+            .also { lastContentType = it.headers().firstValue("Content-Type").orElse("") }
 
     private fun uri(path: String) = URI.create(TestApplication.baseUrl + path)
 }

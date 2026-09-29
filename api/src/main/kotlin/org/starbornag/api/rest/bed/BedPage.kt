@@ -10,6 +10,7 @@ import kotlinx.html.head
 import kotlinx.html.html
 import kotlinx.html.id
 import kotlinx.html.link
+import kotlinx.html.meta
 import kotlinx.html.script
 import kotlinx.html.span
 import kotlinx.html.stream.createHTML
@@ -26,6 +27,8 @@ import java.util.*
 object BedPage {
     fun page(bed: BedResourceWithCurrentState, focus: FocusResource): String = createHTML().html {
         head {
+            meta(charset = "UTF-8")
+            meta(name = "viewport", content = "width=device-width, initial-scale=1")
             title { +bed.name }
             script(src = "https://unpkg.com/htmx.org@2.0.2") {}
             script(src = "https://unpkg.com/htmx-ext-sse@2.2.2/sse.js") {}

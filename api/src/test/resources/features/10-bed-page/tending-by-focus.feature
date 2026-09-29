@@ -59,6 +59,12 @@ Feature: Tending a bed by moving the focus on the bed page
     And the action "plant" asks for "plantType plantCultivar"
     And the action "water" asks for nothing
 
+  Scenario: The page and its fragments declare UTF-8, so plant icons and arrows show as drawn
+    When a gardener opens the focus "cell/B2" of the bed page of "Mars"
+    Then the page declares the character set "UTF-8"
+    And the gardener taps the pad's "north"
+    And the last answer declares the character set "UTF-8"
+
   Scenario: Reloading a focus address shows the whole page
     When a gardener opens the focus "cell/C3" of the bed page of "Mars"
     Then the page shows 4 rows labelled "A B C D" and 8 columns labelled "1 2 3 4 5 6 7 8"

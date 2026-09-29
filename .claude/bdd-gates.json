@@ -1,0 +1,19 @@
+{
+  "stack": "gradle-kotlin",
+  "prodPatterns": [
+    "api/src/main/kotlin/*.kt"
+  ],
+  "prodExcludePatterns": [],
+  "featurePatterns": [
+    "api/src/test/resources/features/*.feature"
+  ],
+  "lintPatterns": [
+    "api/*.kt",
+    "api/*.kts"
+  ],
+  "lintCommand": "cd api && ./gradlew detekt --console=plain -q",
+  "checkCommand": "cd api && ./gradlew check --console=plain",
+  "bddCommand": "cd api && ./gradlew test --console=plain",
+  "bddLogging": "native",
+  "bddRawCommandRegex": ""
+}

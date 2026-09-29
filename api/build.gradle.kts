@@ -1,10 +1,13 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 plugins {
 	kotlin("jvm") version "2.0.21"
 	kotlin("plugin.spring") version "2.0.21"
 	id("org.springframework.boot") version "3.5.16"
 	id("io.spring.dependency-management") version "1.1.7"
+	id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
 group = "org.starbornag"
@@ -19,6 +22,8 @@ java {
 // Spring Boot 3.5 manages Kotlin 1.9 libraries; keep them in step with the Kotlin plugin.
 extra["kotlin.version"] = "2.0.21"
 extra["springAiVersion"] = "1.1.8"
+// Cucumber 7.34 needs JUnit Platform 1.14; Spring Boot 3.5 manages JUnit 5.12.
+extra["junit-jupiter.version"] = "5.14.4"
 
 repositories {
 	mavenCentral()
@@ -55,6 +60,13 @@ dependencies {
 	testImplementation("org.testcontainers:junit-jupiter")
 	testImplementation("org.testcontainers:postgresql")
 	testImplementation("org.testcontainers:r2dbc")
+
+	// bdd-gates: Cucumber on the JUnit Platform (strict: undefined steps fail), Konsist architecture tests.
+	testImplementation("org.junit.platform:junit-platform-suite")
+	testImplementation("io.cucumber:cucumber-java:7.34.6")
+	testImplementation("io.cucumber:cucumber-junit-platform-engine:7.34.6")
+	testImplementation("io.cucumber:cucumber-picocontainer:7.34.6")
+	testImplementation("com.lemonappdev:konsist:0.17.3")
 }
 
 dependencyManagement {
@@ -92,4 +104,45 @@ tasks.withType<KotlinCompile> {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+}
+
+// bdd-gates: records "BDD_RUN PASS|FAIL" in the repository's .claude/tdd-events.log after every
+// test run, including failed ones. finalizedBy, not doLast: Gradle skips doLast when tests fail.
+// Gradle 9 writes one JUnit XML per feature file, so this reads Cucumber's own JSON report.
+val logBddRun = tasks.register("logBddRun") {
+	group = "verification"
+	description = "Appends a BDD_RUN fact to .claude/tdd-events.log for the pre-commit TDD-ordering check."
+	val reportFile = layout.buildDirectory.file("reports/cucumber/report.json")
+	val logFile = rootDir.resolve("../.claude/tdd-events.log")
+	doLast {
+		val timestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS)
+		logFile.parentFile.mkdirs()
+		val json = reportFile.get().asFile.takeIf { it.exists() }?.readText()
+		if (json == null) {
+			// No report means compilation or discovery failed: still red.
+			logFile.appendText("$timestamp BDD_RUN FAIL reason=no-results\n")
+			return@doLast
+		}
+		fun count(pattern: String) = Regex(pattern).findAll(json).count()
+		val scenarios = count("""\"type"\s*:\s*"scenario"""")
+		// Undefined or pending steps count as red: a new scenario without step code has not passed.
+		val notPassed = count("""\"status"\s*:\s*"(failed|undefined|pending|ambiguous)"""")
+		val status = if (notPassed == 0) "PASS" else "FAIL"
+		logFile.appendText("$timestamp BDD_RUN $status scenarios=$scenarios notPassedSteps=$notPassed\n")
+	}
+}
+
+tasks.test {
+	finalizedBy(logBddRun)
+}
+
+// bdd-gates: complexity gate at Detekt's own default thresholds. The baseline records the
+// findings in code written before the gates existed; new code gets no such allowance.
+detekt {
+	buildUponDefaultConfig = true
+	baseline = file("detekt-baseline.xml")
+}
+
+tasks.check {
+	dependsOn(tasks.named("detekt"))
 }

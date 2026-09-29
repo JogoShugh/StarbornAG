@@ -1,0 +1,155 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:BedEventConverter.kt$BedEventHtmlFormatter.Companion$private fun plantTypeToIcon(plantType: String)</ID>
+    <ID>CyclomaticComplexMethod:CellsSelection.kt$CellsSelection$suspend fun streamCellPositions(rowCount: Int, columnCount: Int): Sequence&lt;CellPosition&gt;</ID>
+    <ID>CyclomaticComplexMethod:IndexController.kt$fun plantTypeToIcon(plantType: String)</ID>
+    <ID>CyclomaticComplexMethod:JsonArrayItemStreamer.kt$JsonArrayItemStreamer$suspend fun Flow&lt;String&gt;.extractArrayItems(sourceArrayPath: String = "$.items"): Flow&lt;String&gt;</ID>
+    <ID>DestructuringDeclarationWithTooManyEntries:CellRange.kt$CellRange.Companion$val (row1, col1, row2, col2) = matchResult.destructured</ID>
+    <ID>EmptyDefaultConstructor:BedCommand.kt$BedCommand.CellCommand$()</ID>
+    <ID>EmptyDefaultConstructor:JsonArrayItemStreamer.kt$JsonArrayItemStreamer$()</ID>
+    <ID>EmptyFunctionBlock:BedCellAggregateEventSourcedTest.kt$BedCellAggregateEventSourcedTest.DummyBus${ }</ID>
+    <ID>ExplicitItLambdaParameter:ApiApplicationTests.kt$ApiApplicationTests${ it -&gt; printResponse(it) val resource = it as BedResourceWithCurrentState val selfLink = resource.link("self") val plantLink = resource.link("plant") val waterLink = resource.link("water") val fertilizeLink = resource.link("fertilize") val harvestLink = resource.link("harvest") val historyLink = resource.link("history") bedUuid = resource.id assertThat(resource.rows.count()).isEqualTo(bedHWidth) assertThat(resource.rows.all { row -&gt; assertThat(row.cells.count()).isEqualTo(bedLength) row.cells.all { cell -&gt; cell.planting.isEmpty() } }) assertThat(resource.name).isEqualTo("Earth") postCommand&lt;BedResourceWithCurrentState&gt;( plantLink, "plant-seedling", CellCommand.PlantSeedling( bedUuid, started = Date.from(Instant.now()), plantType = "Tomato", plantCultivar = "Dark Galaxy", location = CellsSelection(cell = CellPosition(1, 1)) ) ) postCommand&lt;BedResourceWithCurrentState&gt;( plantLink, "plant-seedling", CellCommand.PlantSeedling( bedUuid, started = Date.from(Instant.now()), plantType = "Basil", plantCultivar = "Thai Basil", location = CellsSelection(cell = CellPosition(1, 2)) ) ) mapOf( 1 to Date.from(Instant.now().minusSeconds(30L)), 2 to Date.from(Instant.now().minus(2L, ChronoUnit.DAYS)), 3 to Date.from(Instant.now().minus(300L, ChronoUnit.HOURS)) ).forEach { val waterBedCommand = CellCommand.Water( bedUuid, started = it.value, volume = 2.0 ) postCommand&lt;BedResourceWithCurrentState&gt;( waterLink, "water-bed", waterBedCommand ) } postCommand&lt;BedResourceWithCurrentState&gt;( fertilizeLink, "fertilize-bed", CellCommand.Fertilize( bedUuid, started = Date.from(Instant.now().minus(2L, ChronoUnit.HOURS)), volume = 1.0, fertilizer = "Vegan Mix 3-2-2" ) ) postCommand&lt;BedResourceWithCurrentState&gt;( harvestLink, "harvest-bed", CellCommand.Harvest( bedUuid, started = Date.from(Instant.now().minus(1L, ChronoUnit.HOURS)), plantType = "Tomato", plantCultivar = "Dark Galaxy", quantity = 3 ) ) postCommand&lt;BedResourceWithCurrentState&gt;( harvestLink, "harvest-bed", CellCommand.Harvest( bedUuid, started = Date.from(Instant.now().minus(1L, ChronoUnit.HOURS)), plantType = "Basil", plantCultivar = "Thai Basil", weight = 0.2 ) ) getQuery&lt;BedResourceWithCurrentState&gt;( selfLink, "self" ) getQuery&lt;BedResourceWithHistory&gt;( historyLink, "get-history" ) getQuery&lt;JsonSchema&gt;( URI.create("$plantLink/schema"), "get-schema" ) }</ID>
+    <ID>ExplicitItLambdaParameter:ApiApplicationTestsCoroutines.kt$ApiApplicationTestsCoroutines${ it -&gt; //printResponse(it) val resource = it as BedResourceWithCurrentState val selfLink = resource.link("self") val plantLink = resource.link("plant") val waterLink = resource.link("water") val fertilizeLink = resource.link("fertilize") val harvestLink = resource.link("harvest") val historyLink = resource.link("history") bedUuid = resource.id assertThat(resource.rows.count()).isEqualTo(bedHWidth) assertThat(resource.rows.all { row -&gt; assertThat(row.cells.count()).isEqualTo(bedLength) row.cells.all { cell -&gt; cell.planting.isEmpty() } }) assertThat(resource.name).isEqualTo("Earth") // postCommand&lt;BedResourceWithCurrentState&gt;( // plantLink, // "plant-seedling", // BedCommand.PlantSeedlingCommand( // bedUuid, // 1, // 1, // "Tomato", // "Dark Galaxy" // ) // ) mapOf( 1 to Date.from(Instant.now().minusSeconds(30L)) ).forEach { val waterBedCommand = CellCommand.Water( bedUuid, started = it.value, volume = 2.0 ) postCommand&lt;BedResourceWithCurrentState&gt;( waterLink, "water-bed", waterBedCommand ) } getQuery&lt;BedResourceWithCurrentState&gt;( selfLink, "self" ) // // getQuery&lt;BedResourceWithHistory&gt;( // historyLink, // "get-history" // ) }</ID>
+    <ID>ForbiddenComment:CellPosition.kt$CellPosition.Companion$// TODO: add an integer based one....</ID>
+    <ID>ForbiddenComment:CellPosition.kt$CellPosition.Companion$// TODO: input validation checking</ID>
+    <ID>ForbiddenComment:CellPosition.kt$CellPosition.Companion$// TODO: more robust checking and throw meaningful error...</ID>
+    <ID>ForbiddenComment:CellRange.kt$CellRange.Companion$// TODO: should I not allow the !! here?</ID>
+    <ID>FunctionNaming:NlpCommandHandler.kt$private fun ORIGgetSystemPrompt(bedId: UUID)</ID>
+    <ID>InvalidPackageDeclaration:ApiApplicationTests.kt$package org.starbornag.api.domain.bed</ID>
+    <ID>LongMethod:ApiApplicationTests.kt$ApiApplicationTests$@Test fun `Create bed of 8 feet by 4 feet and plant, water, and fertilize it`()</ID>
+    <ID>LongMethod:GenerateFineTuningMessages.kt$fun main(args: Array&lt;String&gt;)</ID>
+    <ID>LongMethod:IndexController.kt$IndexController$@GetMapping("/beds/{bedId}") suspend fun index(@PathVariable bedId: UUID): ResponseEntity&lt;String&gt;</ID>
+    <ID>LongMethod:JsonArrayItemStreamer.kt$JsonArrayItemStreamer$suspend fun Flow&lt;String&gt;.extractArrayItems(sourceArrayPath: String = "$.items"): Flow&lt;String&gt;</ID>
+    <ID>LongMethod:NlpCommandHandler.kt$private fun ORIGgetSystemPrompt(bedId: UUID)</ID>
+    <ID>LongMethod:NlpCommandHandler.kt$private fun getSystemPrompt(bedId: UUID)</ID>
+    <ID>LongParameterList:ApiApplicationTests.kt$ApiApplicationTests$( method: HttpMethod, link: URI, exampleName: String, payload: Any? = null, status: HttpStatusCode, noinline valueConsumer: (Any) -&gt; Unit = { printResponse(it) } )</ID>
+    <ID>LongParameterList:ApiApplicationTestsCoroutines.kt$ApiApplicationTestsCoroutines$( method: HttpMethod, link: URI, exampleName: String, payload: Any? = null, status: HttpStatusCode, noinline valueConsumer: (Any) -&gt; Unit = { printResponse(it) } )</ID>
+    <ID>LongParameterList:BedEvent.kt$BedHarvested$( bedId: UUID, bedCellId: UUID, started: Date, val plantType: String, val plantCultivar: String, val quantity: Int? = null, val weight: Double? = null )</ID>
+    <ID>LongParameterList:CellsSelection.kt$CellsSelection$( val row: Int? = null, val rows: List&lt;Int&gt;? = null, val column: Int? = null, val columns: List&lt;Int&gt;? = null, val cell: CellPosition? = null, val cells: CellPositionList? = null, val cellRange: CellRange? = null, val cellStart: CellPosition? = null, val cellEnd: CellPosition? = null)</ID>
+    <ID>MagicNumber:AlgoTestController.kt$AlgoTestController$120_000L</ID>
+    <ID>MagicNumber:BedCommandHandler.kt$BedCommandHandler$120_000L</ID>
+    <ID>MagicNumber:LogTimer.kt$LogTimer$1000</ID>
+    <ID>MagicNumber:Startup.kt$Startup$10</ID>
+    <ID>MagicNumber:Startup.kt$Startup$5</ID>
+    <ID>MatchingDeclarationName:BedEventConverter.kt$BedEventHtmlFormatter</ID>
+    <ID>MatchingDeclarationName:BedEventConverterConfiguration.kt$SseEventBusConfiguration : SseEventBusConfigurer</ID>
+    <ID>MatchingDeclarationName:BedFunctions.kt$BedFunctionsConfig</ID>
+    <ID>MaxLineLength:ArchitectureBoundaryTest.kt$ArchitectureBoundaryTest$val forbidden = listOf("org.springframework", "ch.rasc", "io.r2dbc", "org.postgresql", "org.starbornag.api.rest")</ID>
+    <ID>MaxLineLength:BedAggregate.kt$BedAggregate$// private suspend fun dispatchToRowWithCellSpan(row: Int, cellSpan: Int, command: BedCommand, sseEventBus: SseEventBus) {</ID>
+    <ID>MaxLineLength:BedAggregate.kt$BedAggregate$command.location != null -&gt; dispatchToStreamingCells(command, bedEventBus, command.location!!.streamCellPositions(rowCount, columnCount))</ID>
+    <ID>MaxLineLength:BedAggregate.kt$BedAggregate$private suspend</ID>
+    <ID>MaxLineLength:BedCommand.kt$BedCommand.CellCommand.PlantSeedling$// {"bedId":"2fbda883-d49d-4067-8e16-2b04cc523111","action":"plant","started":"2023-10-10T00:00:00Z","plantType":"tomato","plantCultivar":"roma","location":{"rows":[1]}}</ID>
+    <ID>MaxLineLength:CellPositioningRegexes.kt$internal val cellListPattern = cellPattern.pattern() + "(?:\\s+|,|\\t)+" + cellPattern.pattern() + "(?:\\s+|,|\\t)*(?:${cellPattern.pattern()})*"</ID>
+    <ID>MaxLineLength:CellsSelection.kt$CellsSelection$val</ID>
+    <ID>NewLineAtEndOfFile:AlgoTestController.kt$org.starbornag.api.rest.bed.AlgoTestController.kt</ID>
+    <ID>NewLineAtEndOfFile:ApiApplicationTestsCoroutines.kt$org.starbornag.api.ApiApplicationTestsCoroutines.kt</ID>
+    <ID>NewLineAtEndOfFile:BedAggregate.kt$org.starbornag.api.domain.bed.BedAggregate.kt</ID>
+    <ID>NewLineAtEndOfFile:BedCellAggregateEventSourcedTest.kt$org.starbornag.api.domain.bed.BedCellAggregateEventSourcedTest.kt</ID>
+    <ID>NewLineAtEndOfFile:BedCellAggregateState.kt$org.starbornag.api.domain.bed.BedCellAggregateState.kt</ID>
+    <ID>NewLineAtEndOfFile:BedCellAggregateStateTest.kt$org.starbornag.api.domain.bed.BedCellAggregateStateTest.kt</ID>
+    <ID>NewLineAtEndOfFile:BedCellRepository.kt$org.starbornag.api.domain.bed.BedCellRepository.kt</ID>
+    <ID>NewLineAtEndOfFile:BedCommand.kt$org.starbornag.api.domain.bed.command.BedCommand.kt</ID>
+    <ID>NewLineAtEndOfFile:BedCommandHandler.kt$org.starbornag.api.rest.bed.BedCommandHandler.kt</ID>
+    <ID>NewLineAtEndOfFile:BedCommandSchemaQueryHandler.kt$org.starbornag.api.rest.bed.BedCommandSchemaQueryHandler.kt</ID>
+    <ID>NewLineAtEndOfFile:BedCurrentStateQueryHandler.kt$org.starbornag.api.rest.bed.BedCurrentStateQueryHandler.kt</ID>
+    <ID>NewLineAtEndOfFile:BedEventBus.kt$org.starbornag.api.domain.bed.BedEventBus.kt</ID>
+    <ID>NewLineAtEndOfFile:BedEventConverter.kt$org.starbornag.api.BedEventConverter.kt</ID>
+    <ID>NewLineAtEndOfFile:BedEventConverterConfiguration.kt$org.starbornag.api.BedEventConverterConfiguration.kt</ID>
+    <ID>NewLineAtEndOfFile:BedEventToPlainTextConverter.kt$org.starbornag.api.BedEventToPlainTextConverter.kt</ID>
+    <ID>NewLineAtEndOfFile:BedEventsBuilder.kt$org.starbornag.api.domain.bed.BedEventsBuilder.kt</ID>
+    <ID>NewLineAtEndOfFile:BedFunctions.kt$org.starbornag.api.rest.bed.BedFunctions.kt</ID>
+    <ID>NewLineAtEndOfFile:BedHistoryQueryHandler.kt$org.starbornag.api.rest.bed.BedHistoryQueryHandler.kt</ID>
+    <ID>NewLineAtEndOfFile:BedRepository.kt$org.starbornag.api.domain.bed.BedRepository.kt</ID>
+    <ID>NewLineAtEndOfFile:BedResourceWithHistory.kt$org.starbornag.api.rest.bed.BedResourceWithHistory.kt</ID>
+    <ID>NewLineAtEndOfFile:CellPosition.kt$org.starbornag.api.domain.bed.command.CellPosition.kt</ID>
+    <ID>NewLineAtEndOfFile:CellPositionDeserializationTest.kt$org.starbornag.api.domain.bed.serialization.CellPositionDeserializationTest.kt</ID>
+    <ID>NewLineAtEndOfFile:CellPositionList.kt$org.starbornag.api.domain.bed.command.CellPositionList.kt</ID>
+    <ID>NewLineAtEndOfFile:CellPositionListDeserializationTest.kt$org.starbornag.api.domain.bed.serialization.CellPositionListDeserializationTest.kt</ID>
+    <ID>NewLineAtEndOfFile:CellPositionListDeserializer.kt$org.starbornag.api.domain.bed.command.serialization.CellPositionListDeserializer.kt</ID>
+    <ID>NewLineAtEndOfFile:CellPositionNavigation.kt$org.starbornag.api.domain.bed.command.CellPositionNavigation.kt</ID>
+    <ID>NewLineAtEndOfFile:CellRange.kt$org.starbornag.api.domain.bed.command.CellRange.kt</ID>
+    <ID>NewLineAtEndOfFile:CellRangeDeserializationTest.kt$org.starbornag.api.domain.bed.serialization.CellRangeDeserializationTest.kt</ID>
+    <ID>NewLineAtEndOfFile:CellsSelection.kt$org.starbornag.api.domain.bed.command.CellsSelection.kt</ID>
+    <ID>NewLineAtEndOfFile:CellsSelectionDeserializationTest.kt$org.starbornag.api.domain.bed.serialization.CellsSelectionDeserializationTest.kt</ID>
+    <ID>NewLineAtEndOfFile:CellsSelectionStreamTest.kt$org.starbornag.api.domain.bed.CellsSelectionStreamTest.kt</ID>
+    <ID>NewLineAtEndOfFile:CoroutineConfig.kt$org.starbornag.api.CoroutineConfig.kt</ID>
+    <ID>NewLineAtEndOfFile:DeserializationTest.kt$org.starbornag.api.domain.bed.serialization.DeserializationTest.kt</ID>
+    <ID>NewLineAtEndOfFile:Dimensions.kt$org.starbornag.api.domain.bed.command.Dimensions.kt</ID>
+    <ID>NewLineAtEndOfFile:JsonArrayItemStreamer.kt$org.starbornag.api.rest.bed.JsonArrayItemStreamer.kt</ID>
+    <ID>NewLineAtEndOfFile:LogTimer.kt$org.starbornag.api.LogTimer.kt</ID>
+    <ID>NewLineAtEndOfFile:NlpCommandHandler.kt$org.starbornag.api.rest.bed.NlpCommandHandler.kt</ID>
+    <ID>NewLineAtEndOfFile:PlantSeedlingDeserializationTest.kt$org.starbornag.api.domain.bed.serialization.PlantSeedlingDeserializationTest.kt</ID>
+    <ID>NewLineAtEndOfFile:PrepareBedCommandHandler.kt$org.starbornag.api.rest.bed.PrepareBedCommandHandler.kt</ID>
+    <ID>NewLineAtEndOfFile:RelativeDatesDsl.kt$org.starbornag.api.domain.bed.RelativeDatesDsl.kt</ID>
+    <ID>NewLineAtEndOfFile:Row.kt$org.starbornag.api.domain.bed.command.Row.kt</ID>
+    <ID>NewLineAtEndOfFile:Startup.kt$org.starbornag.api.Startup.kt</ID>
+    <ID>SpreadOperator:AlgoTestController.kt$AlgoTestController$( clientId.toString(), 120_000L, mediaType, *eventNames )</ID>
+    <ID>SpreadOperator:ApiApplication.kt$(*args)</ID>
+    <ID>SpreadOperator:BedCellAggregateState.kt$BedCellAggregateState.Companion$(*state.harvests.toTypedArray(), newHarvest)</ID>
+    <ID>SpreadOperator:BedCellAggregateState.kt$BedCellAggregateState.Companion$(*state.plantings.toTypedArray(), newPlanting)</ID>
+    <ID>SpreadOperator:BedCommandHandler.kt$BedCommandHandler$( clientId.toString(), 120_000L, mediaType, *eventNames.toTypedArray() )</ID>
+    <ID>SpreadOperator:CellPositionList.kt$CellPositionList.Companion$(*cells.toTypedArray())</ID>
+    <ID>SpreadOperator:CellPositionListDeserializer.kt$CellPositionListDeserializer$(*cellPositions.toTypedArray())</ID>
+    <ID>TooGenericExceptionCaught:AlgoTestController.kt$AlgoTestController$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BedCommandHandler.kt$BedCommandHandler$e: Exception</ID>
+    <ID>TooGenericExceptionThrown:BedCellRepository.kt$BedCellRepository$throw RuntimeException("Could not find cell for id $bedCellId")</ID>
+    <ID>TooGenericExceptionThrown:BedResource.kt$throw Exception("Unknown action type")</ID>
+    <ID>TooManyFunctions:JsonArrayItemStreamer.kt$JsonArrayItemStreamer</ID>
+    <ID>TopLevelPropertyNaming:CellPositionNavigation.kt$private const val cols = 8</ID>
+    <ID>TopLevelPropertyNaming:CellPositionNavigation.kt$private const val rows = 4</ID>
+    <ID>UnusedParameter:AlgoTestController.kt$AlgoTestController$sseEmitter: SseEmitter</ID>
+    <ID>UnusedParameter:ApiApplicationTests.kt$ApiApplicationTests$exampleName: String</ID>
+    <ID>UnusedParameter:ApiApplicationTests.kt$ApiApplicationTests$noinline valueConsumer: (Any?) -&gt; Unit = { printResponse(it) }</ID>
+    <ID>UnusedParameter:ApiApplicationTestsCoroutines.kt$ApiApplicationTestsCoroutines$exampleName: String</ID>
+    <ID>UnusedParameter:ApiApplicationTestsCoroutines.kt$ApiApplicationTestsCoroutines$noinline valueConsumer: (Any?) -&gt; Unit = { printResponse(it) }</ID>
+    <ID>UnusedParameter:BedAggregate.kt$BedAggregate$bedEventBus: IBedEventBus</ID>
+    <ID>UnusedParameter:BedCellAggregate.kt$BedCellAggregate$command: CellCommand.Harvest</ID>
+    <ID>UnusedParameter:BedCellAggregate.kt$BedCellAggregateEventSourced$command: CellCommand.Harvest</ID>
+    <ID>UnusedParameter:BedCommandSchemaQueryHandler.kt$BedCommandSchemaQueryHandler$@PathVariable bedId: UUID</ID>
+    <ID>UnusedParameter:BedCurrentStateQueryHandler.kt$BedCurrentStateQueryHandler$@RequestHeader("Accept") acceptHeader: MediaType?</ID>
+    <ID>UnusedParameter:BedFunctions.kt$BedFunctionsConfig$logbook: Logbook?</ID>
+    <ID>UnusedParameter:IndexController.kt$IndexController$@PathVariable bedId: UUID</ID>
+    <ID>UnusedPrivateMember:BedAggregate.kt$BedAggregate$private suspend fun dispatchCommand(command: CellCommand, bedEventBus: IBedEventBus)</ID>
+    <ID>UnusedPrivateMember:BedAggregate.kt$BedAggregate$private suspend fun dispatchToSingleCell( row: Int, cell: Int, command: BedCommand, bedEventBus: IBedEventBus )</ID>
+    <ID>UnusedPrivateMember:BedAggregate.kt$BedAggregate$private suspend fun dispatchToSingleColumn( cell: Int, command: BedCommand, bedEventBus: IBedEventBus )</ID>
+    <ID>UnusedPrivateMember:BedAggregate.kt$BedAggregate$private suspend fun dispatchToSingleRow( row: Int, command: BedCommand, bedEventBus: IBedEventBus )</ID>
+    <ID>UnusedPrivateMember:BedResource.kt$private fun getSchema(action: String) : JsonSchema</ID>
+    <ID>UnusedPrivateMember:DeserializationTest.kt$DeserializationTest$private fun inputs(): Stream&lt;Arguments&gt;</ID>
+    <ID>UnusedPrivateMember:IndexController.kt$private fun CommonAttributeGroupFacade.getAttrMap(name: String) : HxMap</ID>
+    <ID>UnusedPrivateMember:IndexController.kt$private fun CommonAttributeGroupFacade.setAttrMap(name: String, value: Map&lt;String, Any&gt;)</ID>
+    <ID>UnusedPrivateMember:NlpCommandHandler.kt$NlpCommandHandler$private suspend fun plantSeedlingHandler(command: PlantSeedling)</ID>
+    <ID>UnusedPrivateMember:NlpCommandHandler.kt$private fun ORIGgetSystemPrompt(bedId: UUID)</ID>
+    <ID>UnusedPrivateProperty:ApiApplication.kt$val config = runApplication&lt;ApiApplication&gt;(*args)</ID>
+    <ID>UnusedPrivateProperty:ApiApplicationTestsCoroutines.kt$ApiApplicationTestsCoroutines$val fertilizeLink = resource.link("fertilize")</ID>
+    <ID>UnusedPrivateProperty:ApiApplicationTestsCoroutines.kt$ApiApplicationTestsCoroutines$val harvestLink = resource.link("harvest")</ID>
+    <ID>UnusedPrivateProperty:ApiApplicationTestsCoroutines.kt$ApiApplicationTestsCoroutines$val historyLink = resource.link("history")</ID>
+    <ID>UnusedPrivateProperty:ApiApplicationTestsCoroutines.kt$ApiApplicationTestsCoroutines$val plantLink = resource.link("plant")</ID>
+    <ID>UnusedPrivateProperty:IndexController.kt$private const val HX_BOOST = "hx-boost"</ID>
+    <ID>UnusedPrivateProperty:IndexController.kt$private const val HX_CONFIRM = "hx-confirm"</ID>
+    <ID>UnusedPrivateProperty:IndexController.kt$private const val HX_HEADERS = "hx-headers"</ID>
+    <ID>UnusedPrivateProperty:IndexController.kt$private const val HX_SELECT = "hx-select"</ID>
+    <ID>UseCheckOrError:JsonArrayItemStreamer.kt$JsonArrayItemStreamer$throw IllegalStateException("Syntax error in JSON text")</ID>
+    <ID>UseRequire:JsonArrayItemStreamer.kt$JsonArrayItemStreamer$throw IllegalArgumentException("Invalid JSON path format. Use '$.arrayName'")</ID>
+    <ID>UtilityClassWithPublicConstructor:BedEventConverter.kt$BedEventHtmlFormatter</ID>
+    <ID>VariableNaming:BedResource.kt$BedResource$@JsonInclude(JsonInclude.Include.NON_EMPTY) val _linksSchemas = mutableMapOf&lt;String, String&gt;()</ID>
+    <ID>WildcardImport:AlgoTestController.kt$import org.springframework.web.bind.annotation.*</ID>
+    <ID>WildcardImport:ApiApplicationTests.kt$import org.starbornag.api.domain.bed.command.BedCommand.*</ID>
+    <ID>WildcardImport:ApiApplicationTestsCoroutines.kt$import org.starbornag.api.domain.bed.command.BedCommand.*</ID>
+    <ID>WildcardImport:ApiApplicationTestsCoroutines.kt$import org.starbornag.api.rest.bed.*</ID>
+    <ID>WildcardImport:BedAggregate.kt$import org.starbornag.api.domain.bed.command.BedCommand.*</ID>
+    <ID>WildcardImport:BedCellAggregate.kt$import org.starbornag.api.domain.bed.command.BedCommand.*</ID>
+    <ID>WildcardImport:BedCellAggregateState.kt$import java.time.temporal.ChronoUnit.*</ID>
+    <ID>WildcardImport:BedCommandHandler.kt$import org.springframework.web.bind.annotation.*</ID>
+    <ID>WildcardImport:BedCommandMapper.kt$import org.starbornag.api.domain.bed.command.BedCommand.*</ID>
+    <ID>WildcardImport:BedCommandSchemaQueryHandler.kt$import org.starbornag.api.domain.bed.command.BedCommand.*</ID>
+    <ID>WildcardImport:BedResource.kt$import org.starbornag.api.domain.bed.command.BedCommand.*</ID>
+    <ID>WildcardImport:BedResourceWithCurrentState.kt$import org.starbornag.api.domain.bed.*</ID>
+    <ID>WildcardImport:IndexController.kt$import kotlinx.html.*</ID>
+    <ID>WildcardImport:PlantSeedlingDeserializationTest.kt$import org.starbornag.api.domain.bed.command.*</ID>
+    <ID>WildcardImport:PlantSeedlingDeserializationTest.kt$import org.starbornag.api.domain.bed.command.BedCommand.*</ID>
+    <ID>WildcardImport:PrepareBedCommandHandler.kt$import org.starbornag.api.domain.bed.command.BedCommand.*</ID>
+    <ID>WildcardImport:RelativeDatesDsl.kt$import org.starbornag.api.domain.bed.RelativeDatesDslTimePeriod.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

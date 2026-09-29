@@ -3,6 +3,15 @@
 Ideas that came up while rebuilding StarbornAG and were parked on purpose.
 Newest first. Move an item out when it becomes a slice.
 
+## Bed page polish (seen in the first screenshots of the focus page)
+
+- **Phone width.** 10 columns of 75 px cells do not fit a phone; the grid needs to scale down.
+- **Row and column pads.** A row focus shows an empty top row in the pad; show ↑/↓ only (←/→ for a
+  column), with zoom-out beside them.
+- **Microphone button.** The SpeechKITT mic sits over the bottom-left corner of the focus panel.
+- **Zoom-out label.** The ⤢ symbol reads small; a label such as "Zoom out" or "Row A ↑" is clearer.
+- **Harvest cultivar.** The harvest form asks for the cultivar; pre-fill it from what grows in focus.
+
 ## Hypermedia and HEART + RISE
 
 - **Per-cell forms.** Today `_forms` exist only at bed level (slice 4c). Give each cell its own

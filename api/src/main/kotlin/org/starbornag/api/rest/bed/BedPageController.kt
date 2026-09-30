@@ -17,7 +17,7 @@ import java.util.*
 /**
  * The bed page at /beds/{id} and at every focus address (/beds/{id}/focus/cell/B4, row/B, column/4,
  * bed). A plain request gets the whole page, so reloading or sharing a focus works; an htmx request
- * gets only the focus panel and the highlight.
+ * gets only the view.
  */
 @RestController
 class BedPageController(
@@ -59,17 +59,18 @@ class BedPageController(
 
     private suspend fun render(bedId: UUID, path: String, fragmentOnly: Boolean): ResponseEntity<String> {
         val focus = resources.focus(bedId, path)
-        val html = if (fragmentOnly) FocusPanel.fragment(focus) else BedPage.page(resources.currentState(bedId), focus)
+        val bed = resources.currentState(bedId)
+        val html = if (fragmentOnly) BedPage.fragment(bed, focus) else BedPage.page(bed, focus)
         return ResponseEntity.ok().contentType(HTML).body(html)
     }
 
     private companion object {
-        /** Plant icons and pad arrows are emoji and arrows: without a charset, browsers fall back to Latin-1. */
+        /** Plant and care icons are emoji: without a charset, browsers fall back to Latin-1. */
         val HTML = MediaType(MediaType.TEXT_HTML, Charsets.UTF_8)
     }
 
     /**
-     * Records care on exactly the cells in focus, then answers with the refreshed panel. A care the
+     * Records care on exactly the cells in focus, then answers with the refreshed view. A care the
      * soil rules refuse (planting a planted cell, harvesting bare soil) shows as a message instead.
      */
     private suspend fun care(
@@ -87,7 +88,7 @@ class BedPageController(
         } catch (e: IllegalStateException) {
             e.message
         }
-        val html = FocusPanel.fragment(resources.focus(bedId, path), message)
+        val html = BedPage.fragment(resources.currentState(bedId), resources.focus(bedId, path), message)
         return ResponseEntity.ok().contentType(HTML).body(html)
     }
 }

@@ -2,8 +2,9 @@ package org.starbornag.api.cucumber
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isNotNull
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import io.cucumber.java.ParameterType
+import io.cucumber.datatable.DataTable
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
@@ -19,7 +20,7 @@ import java.net.http.HttpResponse
 
 /**
  * Drives the bed page the way the browser does: a tap follows the element's own hx-get or hx-post,
- * with the HX-Request header, and the answer is swapped into the page like htmx would swap it.
+ * with the HX-Request header, and the answer replaces the page's #view like htmx would swap it.
  */
 class PageSteps(private val world: GardenWorld) {
 
@@ -28,13 +29,7 @@ class PageSteps(private val world: GardenWorld) {
     private var addressBar: String = ""
     private var lastContentType: String = ""
 
-    @ParameterType("the cell [A-Z]\\d+|the row [A-Z]|the column \\d+|the bed name")
-    fun target(text: String): String = when {
-        text.startsWith("the cell") -> "#cell-${text.substringAfterLast(" ")}"
-        text.startsWith("the row") -> ".row-label[data-row=${text.substringAfterLast(" ")}]"
-        text.startsWith("the column") -> ".col-label[data-column=${text.substringAfterLast(" ")}]"
-        else -> "h1.garden-name"
-    }
+    private val view: Element get() = page.selectFirst("#view")!!
 
     @When("a gardener opens the bed page of {string}")
     fun aGardenerOpensTheBedPage(bed: String) = open("/beds/${world.bedId(bed)}")
@@ -48,15 +43,16 @@ class PageSteps(private val world: GardenWorld) {
     @Given("a gardener has opened the focus {string} of the bed page of {string}")
     fun aGardenerHasOpenedTheFocus(focus: String, bed: String) = aGardenerOpensTheFocus(focus, bed)
 
-    @When("the gardener taps {target}")
-    fun theGardenerTaps(selector: String) = tap(page.selectFirst(selector)!!)
+    @When("the gardener taps the neighbor {string}")
+    fun theGardenerTapsTheNeighbor(cell: String) = tap(view.selectFirst(".hood .slot[data-cell=$cell]")!!)
 
-    @When("the gardener taps the pad's {string}")
-    fun theGardenerTapsThePad(move: String) = tap(page.selectFirst(".pad-move[data-move=$move]")!!)
+    @When("the gardener taps the breadcrumb {string}")
+    fun theGardenerTapsTheBreadcrumb(crumb: String) =
+        tap(view.select(".crumbs .crumb").first { it.text() == crumb })
 
-    @When("the gardener taps {string} in the action bar")
-    fun theGardenerTapsInTheActionBar(action: String) {
-        val form = page.selectFirst("form.care-action[data-action=$action]")!!
+    @When("the gardener taps {string} in the sheet")
+    fun theGardenerTapsInTheSheet(action: String) {
+        val form = view.selectFirst(".sheet form.care-action[data-action=$action]")!!
         val fields = form.select("input[name], select[name]").associate { field ->
             field.attr("name") to field.attr("value").ifEmpty { field.selectFirst("option")?.text() ?: "test" }
         }
@@ -71,30 +67,88 @@ class PageSteps(private val world: GardenWorld) {
         )
     }
 
-    @Then("the page shows {int} rows labelled {string} and {int} columns labelled {string}")
-    fun thePageShowsRowsAndColumns(rows: Int, rowLabels: String, columns: Int, columnLabels: String) {
-        assertThat(page.select(".row-label").map { it.text() }).isEqualTo(rowLabels.split(" "))
-        assertThat(page.select(".col-label").map { it.text() }).isEqualTo(columnLabels.split(" "))
-        assertThat(page.select(".grid-item").size).isEqualTo(rows * columns)
+    @Then("the view shows {int} rows labelled {string} and {int} columns labelled {string}")
+    fun theViewShowsTheBed(rows: Int, rowLabels: String, columns: Int, columnLabels: String) {
+        assertThat(view.select(".bed-map .row-label").map { it.text() }).isEqualTo(rowLabels.split(" "))
+        assertThat(view.select(".bed-map .col-label").map { it.text() }).isEqualTo(columnLabels.split(" "))
+        assertThat(view.select(".bed-map .tile").size).isEqualTo(rows * columns)
     }
 
-    @Then("the focus panel shows {string}")
-    fun theFocusPanelShows(label: String) {
-        assertThat(page.selectFirst("#focus-panel .focus-label")!!.text()).isEqualTo(label)
+    @Then("tapping these opens their focus:")
+    fun tappingTheseOpensTheirFocus(table: DataTable) {
+        table.asMaps().forEach { row ->
+            val (kind, name) = row.getValue("tap").split(" ")
+            val selector = when (kind) {
+                "row" -> ".row-label[data-row=$name]"
+                "column" -> ".col-label[data-column=$name]"
+                else -> ".tile[data-cell=$name]"
+            }
+            assertThat(focusOf(view.selectFirst(selector)!!)).isEqualTo(row["opens"])
+        }
     }
 
-    /** Cell labels from the highlight's selectors, or "all" when every cell is highlighted. */
-    @Then("the highlighted cells are {string}")
-    fun theHighlightedCellsAre(cells: String) {
-        val css = page.selectFirst("style#focus-style")!!.data()
-        val highlighted = if (css.startsWith(".grid-item")) "all" else
-            Regex("#cell-([A-Z]\\d+)").findAll(css).joinToString(" ") { it.groupValues[1] }
-        assertThat(highlighted).isEqualTo(cells)
+    @Then("the breadcrumb reads {string}")
+    fun theBreadcrumbReads(crumbs: String) {
+        assertThat(view.select(".crumbs .crumb").joinToString(" › ") { it.text() }).isEqualTo(crumbs)
+    }
+
+    @Then("the view shows the cells {string}")
+    fun theViewShowsTheCells(cells: String) {
+        assertThat(view.select(".line.in-focus .tile").joinToString(" ") { it.attr("data-cell") }).isEqualTo(cells)
+    }
+
+    /** A peeking row or column names the focus it leads to, or "edge" past the bed. */
+    @Then("{string} peeks in before and {string} after")
+    fun peeksIn(before: String, after: String) {
+        assertThat(peek("before")).isEqualTo(before)
+        assertThat(peek("after")).isEqualTo(after)
+    }
+
+    /** The nine slots in compass order (northwest to southeast): a cell label, or "edge" past the bed. */
+    @Then("the neighborhood reads {string}")
+    fun theNeighborhoodReads(slots: String) {
+        val read = view.select(".hood .slot").map { if (it.hasClass("edge")) "edge" else it.attr("data-cell") }
+        assertThat(read.joinToString(" ")).isEqualTo(slots)
+    }
+
+    @Then("the neighbor {string} sits {word} of the cell in landscape and {word} of it in portrait")
+    fun theNeighborSits(cell: String, landscape: String, portrait: String) {
+        val style = view.selectFirst(".hood .slot[data-cell=$cell]")!!.attr("style")
+        fun v(name: String) = Regex("--$name:\\s*(\\d+)").find(style)!!.groupValues[1].toInt()
+        assertThat(side(v("lr"), v("lc"))).isEqualTo(landscape)
+        assertThat(side(v("pr"), v("pc"))).isEqualTo(portrait)
     }
 
     @Then("the address bar shows the focus {string}")
     fun theAddressBarShows(path: String) {
         assertThat(addressBar.substringAfter("/focus/")).isEqualTo(path)
+    }
+
+    @Then("the sheet offers {string}")
+    fun theSheetOffers(actions: String) {
+        assertThat(view.select(".sheet form.care-action").map { it.attr("data-action") }).isEqualTo(actions.split(" "))
+    }
+
+    @Then("the action {string} asks for {string}")
+    fun theActionAsksFor(action: String, fields: String) {
+        assertThat(fieldsOf(action)).isEqualTo(fields.split(" "))
+    }
+
+    @Then("the action {string} asks for nothing")
+    fun theActionAsksForNothing(action: String) {
+        assertThat(fieldsOf(action)).isEqualTo(emptyList())
+    }
+
+    @Then("the action {string} offers {string} to choose as {string}")
+    fun theActionOffersToChoose(action: String, choices: String, field: String) {
+        val select = view.selectFirst("form.care-action[data-action=$action] select[name=$field]")
+        assertThat(select?.select("option")?.map { it.text() }?.joinToString(" ")).isEqualTo(choices)
+    }
+
+    @Then("the page offers a light and dark toggle")
+    fun thePageOffersALightAndDarkToggle() {
+        assertThat(page.selectFirst("button.theme-toggle")).isNotNull()
+        assertThat(page.selectFirst("html")!!.hasAttr("data-theme")).isEqualTo(true)
     }
 
     /** Both the Content-Type header and the page's own <meta charset>, as a browser reads them. */
@@ -109,45 +163,10 @@ class PageSteps(private val world: GardenWorld) {
         assertThat(lastContentType.contains("charset=$charset", ignoreCase = true)).isEqualTo(true)
     }
 
-    @Then("the pad offers {string}")
-    fun thePadOffers(moves: String) {
-        val offered = page.select(".pad-move").map { it.attr("data-move") }
-        assertThat(offered.sorted()).isEqualTo(moves.split(" ").filter { it.isNotEmpty() }.sorted())
-    }
-
-    /** The pad's slots in reading order: a move's name, or "-" for an empty slot. */
-    @Then("the pad is a {word} pad reading {string}")
-    fun thePadReads(shape: String, slots: String) {
-        val pad = page.selectFirst(".pad")!!
-        assertThat(pad.attr("data-shape")).isEqualTo(shape)
-        val read = pad.children().map { if (it.hasClass("pad-move")) it.attr("data-move") else "-" }
-        assertThat(read.joinToString(" ")).isEqualTo(slots)
-    }
-
-    @Then("the pad's {string} reads {string}")
-    fun thePadMoveReads(move: String, text: String) {
-        assertThat(page.selectFirst(".pad-move[data-move=$move]")!!.text()).isEqualTo(text)
-    }
-
-    @Then("the action {string} offers {string} to choose as {string}")
-    fun theActionOffersToChoose(action: String, choices: String, field: String) {
-        val select = page.selectFirst("form.care-action[data-action=$action] select[name=$field]")
-        assertThat(select?.select("option")?.map { it.text() }?.joinToString(" ")).isEqualTo(choices)
-    }
-
-    @Then("the action bar offers {string}")
-    fun theActionBarOffers(actions: String) {
-        assertThat(page.select("form.care-action").map { it.attr("data-action") }).isEqualTo(actions.split(" "))
-    }
-
-    @Then("the action {string} asks for {string}")
-    fun theActionAsksFor(action: String, fields: String) {
-        assertThat(fieldsOf(action)).isEqualTo(fields.split(" "))
-    }
-
-    @Then("the action {string} asks for nothing")
-    fun theActionAsksForNothing(action: String) {
-        assertThat(fieldsOf(action)).isEqualTo(emptyList())
+    @Then("the page is a whole page with the breadcrumb {string}")
+    fun thePageIsAWholePage(crumbs: String) {
+        assertThat(page.selectFirst("head link[rel=stylesheet]")).isNotNull()
+        theBreadcrumbReads(crumbs)
     }
 
     @Then("the cells with a recorded {string} in the bed {string} are {string}")
@@ -162,8 +181,24 @@ class PageSteps(private val world: GardenWorld) {
         assertThat(recorded.joinToString(" ")).isEqualTo(cells)
     }
 
+    private fun peek(side: String): String {
+        val element = view.selectFirst(".peek[data-side=$side]")!!
+        return if (element.hasClass("edge")) "edge" else focusOf(element)
+    }
+
+    /** The 3x3 slot at [row], [column] (1-based) seen from the center slot. */
+    private fun side(row: Int, column: Int): String = when {
+        row == 1 && column == 2 -> "above"
+        row == 3 && column == 2 -> "below"
+        row == 2 && column == 1 -> "left"
+        row == 2 && column == 3 -> "right"
+        else -> "diagonal"
+    }
+
+    private fun focusOf(element: Element): String = element.attr("hx-get").substringAfter("/focus/")
+
     private fun fieldsOf(action: String): List<String> =
-        page.selectFirst("form.care-action[data-action=$action]")!!
+        view.selectFirst("form.care-action[data-action=$action]")!!
             .select("input[name], select[name]").map { it.attr("name") }
 
     private fun open(path: String) {
@@ -180,13 +215,11 @@ class PageSteps(private val world: GardenWorld) {
         if (element.attr("hx-push-url") == "true") addressBar = path
     }
 
-    /** Swaps the answered panel in place of the page's panel, and the out-of-band highlight too. */
+    /** Replaces the page's #view with the answered one, as hx-target="#view" hx-swap="outerHTML" does. */
     private fun swapIn(response: HttpResponse<String>) {
         assertThat(response.statusCode()).isEqualTo(200)
         val fragment = Jsoup.parseBodyFragment(response.body()).body()
-        page.selectFirst("#focus-panel")!!.replaceWith(fragment.selectFirst("#focus-panel")!!)
-        fragment.selectFirst("style#focus-style[hx-swap-oob]")
-            ?.let { page.selectFirst("style#focus-style")!!.replaceWith(it) }
+        page.selectFirst("#view")!!.replaceWith(fragment.selectFirst("#view")!!)
     }
 
     private fun send(request: HttpRequest.Builder): HttpResponse<String> =

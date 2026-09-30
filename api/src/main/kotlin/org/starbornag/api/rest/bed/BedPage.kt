@@ -5,129 +5,119 @@ import kotlinx.html.FlowContent
 import kotlinx.html.body
 import kotlinx.html.classes
 import kotlinx.html.div
-import kotlinx.html.h1
 import kotlinx.html.head
 import kotlinx.html.html
 import kotlinx.html.id
+import kotlinx.html.lang
 import kotlinx.html.link
 import kotlinx.html.meta
 import kotlinx.html.script
-import kotlinx.html.span
 import kotlinx.html.stream.createHTML
 import kotlinx.html.title
 import kotlinx.html.unsafe
-import org.starbornag.api.domain.bed.rowLetter
+import org.starbornag.api.domain.bed.Focus
+import org.starbornag.api.rest.bed.ZoomMap.bedMap
+import org.starbornag.api.rest.bed.ZoomMap.lines
+import org.starbornag.api.rest.bed.ZoomMap.neighborhood
+import org.starbornag.api.rest.bed.ZoomSheet.crumbs
+import org.starbornag.api.rest.bed.ZoomSheet.sheet
+import org.starbornag.api.rest.bed.ZoomSheet.themeToggle
 import java.util.*
 
 /**
- * The bed page: the live grid with tappable row letters, column numbers and cells, and the focus
- * panel (see FocusPanel). The grid is rendered once and stays connected to the SSE announcements;
- * moving the focus swaps only the panel and the highlight.
+ * The bed page: a shell that stays connected to the SSE announcements around the view, which IS the
+ * focus. The view shows the whole bed, one row, one column or one cell among its neighbors (see
+ * ZoomMap), with the details and care in a sheet (see ZoomSheet). Moving the focus swaps only the view.
  */
 object BedPage {
-    private const val CELL_WIDTH_PX = 80
-    private const val LABEL_WIDTH_PX = 40
+    const val VIEW = "#view"
 
-    fun page(bed: BedResourceWithCurrentState, focus: FocusResource): String = createHTML().html {
-        head {
-            meta(charset = "UTF-8")
-            meta(name = "viewport", content = "width=device-width, initial-scale=1")
-            title { +bed.name }
-            script(src = "https://unpkg.com/htmx.org@2.0.2") {}
-            script(src = "https://unpkg.com/htmx-ext-sse@2.2.2/sse.js") {}
-            script(src = "//cdnjs.cloudflare.com/ajax/libs/annyang/2.6.1/annyang.min.js") {}
-            script(src = "//cdnjs.cloudflare.com/ajax/libs/SpeechKITT/0.3.0/speechkitt.min.js") {}
-            script { unsafe { +voiceScript(bed.id) } }
-            script(src = "/script.js") {}
-            link(rel = "stylesheet", href = "/styles.css")
-        }
-        body {
-            id = "garden"
-            div {
-                classes = setOf("centered-container")
-                h1 {
-                    classes = setOf("garden-name")
-                    focusLink(bed.id, "bed")
-                    +bed.name
-                }
-                grid(bed)
-                with(FocusPanel) {
-                    highlight(focus, outOfBand = false)
-                    panel(focus, message = null)
-                }
+    fun page(bed: BedResourceWithCurrentState, focus: FocusResource, message: String? = null): String =
+        createHTML().html {
+            lang = "en"
+            attributes["data-theme"] = "auto"
+            head {
+                meta(charset = "UTF-8")
+                meta(name = "viewport", content = "width=device-width, initial-scale=1, viewport-fit=cover")
+                title { +bed.name }
+                script { unsafe { +THEME_SCRIPT } }
+                script(src = "https://unpkg.com/htmx.org@2.0.2") {}
+                script(src = "https://unpkg.com/htmx-ext-sse@2.2.2/sse.js") {}
+                script(src = "//cdnjs.cloudflare.com/ajax/libs/annyang/2.6.1/annyang.min.js") {}
+                script(src = "//cdnjs.cloudflare.com/ajax/libs/SpeechKITT/0.3.0/speechkitt.min.js") {}
+                script { unsafe { +voiceScript(bed.id) } }
+                link(rel = "stylesheet", href = "/styles.css")
             }
-        }
-    }
-
-    private fun FlowContent.grid(bed: BedResourceWithCurrentState) {
-        val columns = bed.rows.firstOrNull()?.cells?.size ?: 0
-        div {
-            id = "bed-${bed.id}"
-            classes = setOf("grid-container", "bed-grid")
-            hx {
-                ext = "sse"
-                sseConnect = "/api/beds/${bed.id}/events?clientId=${UUID.randomUUID()}"
-            }
-            // Cells share the width, so a wide bed shrinks to fit a phone instead of overflowing it.
-            attributes["style"] = "grid-template-columns: auto repeat($columns, minmax(0, 1fr)); " +
-                "max-width: ${columns * CELL_WIDTH_PX + LABEL_WIDTH_PX}px;"
-            div { classes = setOf("grid-corner") }
-            for (column in 1..columns) {
+            body {
                 div {
-                    classes = setOf("col-label")
-                    attributes["data-column"] = "$column"
-                    focusLink(bed.id, "column/$column")
-                    +"$column"
-                }
-            }
-            bed.rows.forEachIndexed { rowIndex, row ->
-                val letter = rowLetter(rowIndex + 1)
-                div {
-                    classes = setOf("row-label")
-                    attributes["data-row"] = letter
-                    focusLink(bed.id, "row/$letter")
-                    +letter
-                }
-                row.cells.forEachIndexed { columnIndex, cell -> cell(bed.id, "$letter${columnIndex + 1}", cell) }
-            }
-        }
-    }
-
-    private fun FlowContent.cell(bedId: UUID, label: String, cell: BedResourceCell) {
-        div {
-            id = "cell-$label"
-            classes = setOf("grid-item")
-            focusLink(bedId, "cell/$label")
-            div {
-                classes = setOf("plant")
-                span {
-                    classes = setOf("plant-icon", "large-icon")
+                    classes = setOf("shell")
                     hx {
-                        sseSwap = "plants-${cell.bedCellId}"
-                        target = "this"
+                        ext = "sse"
+                        sseConnect = "/api/beds/${bed.id}/events?clientId=${UUID.randomUUID()}"
                     }
-                    +plantTypeToIcon(cell.planting.plantType)
+                    view(bed, focus, message)
                 }
             }
+        }
+
+    /** What htmx swaps in when the focus moves or care is recorded: only the view. */
+    fun fragment(bed: BedResourceWithCurrentState, focus: FocusResource, message: String? = null): String =
+        createHTML().div { view(bed, focus, message) }.trim().removePrefix("<div>").removeSuffix("</div>")
+
+    private fun FlowContent.view(bed: BedResourceWithCurrentState, resource: FocusResource, message: String?) {
+        val layout = ZoomMap.Layout(bed)
+        val focus = Focus.fromPath(resource.path, layout.rows, layout.columns)
+        div {
+            id = "view"
+            attributes["data-focus"] = resource.path
+            attributes["data-zoom"] = resource.path.substringBefore("/")
             div {
-                classes = setOf("events")
-                hx {
-                    sseSwap = "events-${cell.bedCellId}"
-                    swap = "beforeend"
-                    target = "this"
+                classes = setOf("map-area")
+                div {
+                    classes = setOf("topbar")
+                    crumbs(resource, focus, layout.rows, layout.columns)
+                    themeToggle()
                 }
-                cell.events.forEach { span { +iconMap.getOrDefault(it.javaClass.simpleName, "") } }
+                div {
+                    classes = setOf("map")
+                    when (focus) {
+                        is Focus.OnCell -> neighborhood(layout, focus.position)
+                        is Focus.OnRow, is Focus.OnColumn -> lines(layout, focus)
+                        Focus.OnBed -> bedMap(layout)
+                    }
+                }
             }
+            sheet(resource, message)
         }
     }
 
-    /** Tapping moves the focus: the panel is swapped and the address bar shows the focus. */
+    /** Tapping moves the focus: the view is swapped and the address bar shows the focus. */
     fun CommonAttributeGroupFacade.focusLink(bedId: UUID, path: String) = hx {
         get = "/beds/$bedId/focus/$path"
-        target = FocusPanel.TARGET
+        target = VIEW
         swap = "outerHTML"
         pushUrl = true
     }
+
+    /** Follows the phone's light or dark setting until the gardener picks one, which is remembered. */
+    private val THEME_SCRIPT = """
+        (function () {
+          try {
+            var chosen = localStorage.getItem('theme');
+            if (chosen) document.documentElement.dataset.theme = chosen;
+          } catch (e) {}
+        })();
+        function starbornToggleTheme() {
+          var root = document.documentElement;
+          var now = root.dataset.theme;
+          if (now !== 'light' && now !== 'dark') {
+            now = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+          }
+          var next = now === 'light' ? 'dark' : 'light';
+          root.dataset.theme = next;
+          try { localStorage.setItem('theme', next); } catch (e) {}
+        }
+    """.trimIndent()
 
     /** Free speech after "starborn" still goes to the AI; the fixed navigation grammar comes next. */
     private fun voiceScript(bedId: UUID) = """

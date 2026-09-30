@@ -1,385 +1,404 @@
-body {
-    background: linear-gradient(135deg, #1e5e2e, DarkGreen); /* Diagonal gradient from dark green to lighter green */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh; /* Centered in the viewport, but free to scroll when the focus panel is tall */
+/*
+ * The bed page, direction C "Neighborhood": the view is the focus, details and care live in a sheet.
+ * Landscape keeps the bed as it is (row letters down the side) with a side sheet; portrait turns the
+ * bed (row letters across the top) with a bottom sheet. Every placed map element carries its grid
+ * position for both: --lr/--lc in landscape, --pr/--pc in portrait.
+ */
+
+/* ---------------------------------------------------------------- Themes */
+
+:root {
+    /* Dark: night soil. */
+    --bg: #14261a;
+    --ink: #eef3e9;
+    --label: #b8c7b0;
+    --soil: #3a2a1e;
+    --soil-shadow: inset 0 0 12px rgba(0, 0, 0, .6);
+    --tile-ink: #eef3e9;
+    --edge-a: #1b3322;
+    --edge-b: #20402a;
+    --pill: rgba(0, 0, 0, .45);
+    --pill-ink: #eef3e9;
+    --sheet: #f4efe4;
+    --sheet-ink: #22301f;
+    --muted: #6d6a5e;
+    --rule: #e2dbc9;
+    --action: #2f6b34;
+    --action-ink: #ffffff;
+    --focus-ring: #f2c14e;
+    color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+    /* Light: high contrast for bright sun. */
+    --bg: #fbf7ee;
+    --ink: #1f2a1d;
+    --label: #4a4a3c;
+    --soil: #e9e3d3;
+    --soil-shadow: inset 0 0 0 2px #d8d0bc;
+    --tile-ink: #1f2a1d;
+    --edge-a: #f1ecdf;
+    --edge-b: #e4dccb;
+    --pill: #ffffff;
+    --pill-ink: #1f2a1d;
+    --sheet: #ffffff;
+    --sheet-ink: #1f2a1d;
+    --muted: #5b5b4d;
+    --rule: #e0d9c8;
+    --action: #2f6b34;
+    --action-ink: #ffffff;
+    --focus-ring: #1f2a1d;
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+    :root[data-theme="auto"] {
+        --bg: #fbf7ee;
+        --ink: #1f2a1d;
+        --label: #4a4a3c;
+        --soil: #e9e3d3;
+        --soil-shadow: inset 0 0 0 2px #d8d0bc;
+        --tile-ink: #1f2a1d;
+        --edge-a: #f1ecdf;
+        --edge-b: #e4dccb;
+        --pill: #ffffff;
+        --pill-ink: #1f2a1d;
+        --sheet: #ffffff;
+        --sheet-ink: #1f2a1d;
+        --muted: #5b5b4d;
+        --rule: #e0d9c8;
+        --action: #2f6b34;
+        --action-ink: #ffffff;
+        --focus-ring: #1f2a1d;
+        color-scheme: light;
+    }
+}
+
+/* ---------------------------------------------------------------- Frame */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+    height: 100%;
     margin: 0;
-    text-align: center; /* This keeps inline elements like your text centered */
 }
 
-.centered-container {
-    display: flex;
-    flex-direction: column; /* Stack the label and grid vertically */
-    justify-content: center; /* Center the content vertically */
-    align-items: center; /* Center the content horizontally */
-    min-height: 100vh;
-    padding: 12px 0;
-    box-sizing: border-box;
+body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.garden-name {
-    font-family: 'Trebuchet MS', serif; /* Classic serif font, slightly rustic */
-    font-size: 2.0rem; /* Large enough to stand out */
-    color: #4B2E1A; /* Earthy green color */
-    text-align: center;
-    background: linear-gradient(
-      90deg,
-      #603913 0%,   /* Dark brown for belts */
-      #c09d7a 25%,  /* Light brown for zones */
-      #f0d9b5 50%,  /* Creamy white for light zones */
-      #b5651d 75%,  /* Reddish brown for prominent belts */
-      #f5f5f5 100%  /* Lighter white for a top zone */
-    );
-    padding: 8px 12px;
-    border: 3px solid #8B4513; /* Thin dark brown border to mimic soil edges */
-    border-radius: 8px; /* Smooth rounded corners for a friendly look */
-    box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.3); /* Soft shadow for a subtle pop */
-    text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
-    display: inline-block;
-}
+.shell { height: 100dvh; }
 
-.grid-container {
+#view {
+    height: 100%;
     display: grid;
-    border: 4px solid;
-    border-image: linear-gradient(45deg, #8B4513, #CD853F, #D2691E, #8B4513) 10;
-    background-color: #F5DEB3; /* Light wood background color */
-    border-radius: 4px; /* Slight rounding for more natural look */
-    width: fit-content;
-    margin: 0 auto; /* This centers the grid horizontally */
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 32%);
+    grid-template-rows: minmax(0, 1fr);
 }
 
-.grid-solo {
-    width: 400px;
-    height: 400px;
-    background-color: #e0ffe0;
-    border: 4px solid;
-    border-image: linear-gradient(45deg, #8B4513, #CD853F, #D2691E, #8B4513) 10;
-    border-radius: 4px; /* Slight rounding for more natural look */
-    background: radial-gradient(circle, #4E3629, #3B2C21, #1F140E);
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5),
-                inset 0 0 20px rgba(60, 40, 20, 0.7),
-                inset 0 0 30px rgba(30, 15, 5, 0.5);
-    text-align: center;
-    box-sizing: border-box; /* Include border in width/height calculation */
-}
-
-.arrow {
-  display: inline-block;
-  font-size: 50pt;
-  position: relative;
-}
-
-.arrow.nw::before {
-  content: "⬆️";
-  transform: rotate(315deg);
-  display: block;
-  position: absolute;
-  bottom: 0;
-  right: 0;
-}
-
-.arrow.n::before {
-  content: "⬆️";
-  transform: rotate(0deg);
-  display: block;
-  position: absolute;
-  bottom: 0;
-  left: 42%;
-}
-
-.arrow.ne::before {
-  content: "⬆️";
-  transform: rotate(45deg);
-  display: block;
-  position: absolute;
-  bottom: 0;
-}
-
-.arrow.w::before {
-  content: "⬆️";
-  transform: rotate(270deg);
-  display: block;
-  position: absolute;
-  right: 10pt;
-  top: 42%;
-}
-
-.arrow.e::before {
-  content: "⬆️";
-  transform: rotate(90deg);
-  display: block;
-  position: absolute;
-  top: 42%;
-  left: 10pt;
-}
-
-.arrow.se::before {
-  content: "⬆️";
-  transform: rotate(135deg);
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.arrow.s::before {
-  content: "⬆️";
-  transform: rotate(180deg);
-  display: block;
-}
-
-.arrow.sw::before {
-  content: "⬆️";
-  transform: rotate(225deg);
-  display: block;
-  position: absolute;
-  right: 0;
-}
-
-.grid-item {
-    width: 75px;
-    height: 75px;
-    background-color: #e0ffe0;
-    border: 4px solid;
-    border-image: linear-gradient(45deg, #8B4513, #CD853F, #D2691E, #8B4513) 10;
-    border-radius: 4px; /* Slight rounding for more natural look */
-    background: radial-gradient(circle, #4E3629, #3B2C21, #1F140E);
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5),
-                inset 0 0 20px rgba(60, 40, 20, 0.7),
-                inset 0 0 30px rgba(30, 15, 5, 0.5);
-    text-align: center;
-    box-sizing: border-box; /* Include border in width/height calculation */
-}
-
-.grid-item .plant {
+.map-area {
     display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px 4px;
+}
+
+.crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    background: var(--pill);
+    color: var(--pill-ink);
+    padding: 6px 12px;
+    border-radius: 14px;
+    font-size: 15px;
+}
+
+.crumb { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.crumb.here { font-weight: 800; text-decoration: none; cursor: default; }
+.crumb-separator { opacity: .6; }
+
+.theme-toggle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--pill-ink);
+    background: var(--pill);
+    color: var(--pill-ink);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.map {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
     justify-content: center;
-    align-items: center;
-    width: 80%;
-    height: 80%;
+    padding: 8px 12px 12px;
+    container-type: size;
 }
 
-.grid-item .events {
+[hx-get] { cursor: pointer; }
+[hx-get]:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------- Tiles */
+
+.tile {
+    position: relative;
     display: flex;
     align-items: center;
-    width: 100%;
-    height: 20%;
+    justify-content: center;
+    min-width: 0;
+    min-height: 0;
+    border-radius: 10px;
+    background: var(--soil);
+    box-shadow: var(--soil-shadow);
+    color: var(--tile-ink);
+    container-type: size;
+    overflow: hidden;
 }
 
-.plant-icon {
-    font-size: 24pt;
+.tile-label {
+    position: absolute;
+    top: 3px;
+    left: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    opacity: .75;
 }
 
-@keyframes fade-in {
- from { opacity: 0; }
+.plant-icon { font-size: 50cqmin; line-height: 1; }
+
+.events {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: max(10px, 16cqmin);
+    white-space: nowrap;
 }
 
-@keyframes fade-out {
- to { opacity: 0; }
+.edge {
+    background: repeating-linear-gradient(45deg, var(--edge-a), var(--edge-a) 6px, var(--edge-b) 6px, var(--edge-b) 12px);
+    box-shadow: none;
+    border-radius: 10px;
 }
 
-@keyframes slide-from-right {
- from { transform: translateX(90px); }
+/* ---------------------------------------------------------------- Bed view */
+
+.bed-map {
+    --gap: 4px;
+    --label-size: 24px;
+    --tile: min(
+        calc((100cqw - var(--label-size)) / var(--columns) - var(--gap)),
+        calc((100cqh - var(--label-size)) / var(--rows) - var(--gap))
+    );
+    display: grid;
+    gap: var(--gap);
+    grid-template-columns: var(--label-size) repeat(var(--columns), var(--tile));
+    grid-template-rows: var(--label-size) repeat(var(--rows), var(--tile));
 }
 
-@keyframes slide-to-left {
- to { transform: translateX(-90px); }
-}
-
-/* define animations for the old and new content */
-::view-transition-old(slide-it) {
- animation: 180ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
- 600ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
-}
-::view-transition-new(slide-it) {
- animation: 420ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
- 600ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
-}
-
-/* tie the view transition to a given CSS class */
-.sample-transition {
-   view-transition-name: slide-it;
-}
-/* ---- Bed grid margins: tap a row letter or column number to focus that row or column ---- */
-
-.bed-grid {
-    gap: 2px;
-}
+.bed-map > * { grid-row: var(--lr); grid-column: var(--lc); }
 
 .row-label, .col-label {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 28px;
-    padding: 4px 6px;
-    font: bold 1.1rem 'Trebuchet MS', sans-serif;
-    color: #4B2E1A;
-    cursor: pointer;
-    user-select: none;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--label);
+    border-radius: 8px;
 }
 
-.grid-item, .garden-name {
-    cursor: pointer;
-}
+.row-label:hover, .col-label:hover { background: var(--pill); }
 
-/* ---- Focus panel: where the gardener stands, the pad to move, and care for the cells in focus ---- */
+/* ---------------------------------------------------------------- Row and column views */
 
-#focus-panel {
-    margin-top: 14px;
-    min-width: 320px;
-    padding: 10px 16px 14px;
-    background: rgba(245, 222, 179, 0.96);
-    border: 3px solid #8B4513;
-    border-radius: 12px;
-    box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.3);
-    color: #3B2C21;
-    font-family: 'Trebuchet MS', sans-serif;
-}
-
-.focus-label {
-    margin: 4px 0;
-    font-size: 1.7rem;
-}
-
-.focus-summary {
-    margin: 0 0 6px;
-}
-
-.focus-message {
-    margin: 4px 0;
-    color: #8B0000;
-    font-weight: bold;
-}
-
-.pad {
-    display: grid;
-    grid-template-columns: repeat(3, 64px);
-    grid-template-rows: repeat(3, 64px);
+.lines {
+    width: 100%;
+    height: 100%;
+    display: flex;
     gap: 6px;
+}
+
+.line, .peek {
+    display: flex;
+    gap: 5px;
+    min-width: 0;
+    min-height: 0;
+}
+
+.line { flex: 1; overflow: auto; }
+.line .tile { flex: 1 1 0; min-width: 52px; min-height: 52px; }
+.peek { flex: 0 0 12%; border-radius: 10px; }
+
+.peek-tile {
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
     justify-content: center;
-    margin: 8px auto;
+    border-radius: 8px;
+    background: var(--soil);
+    opacity: .4;
+    font-size: 16px;
 }
 
-.pad-move {
-    font-size: 30px;
-    border: 2px solid #8B4513;
-    border-radius: 14px;
-    background: #FFF8E7;
-    cursor: pointer;
+/* Landscape: a row is a strip across with its neighbors above and below; a column stands upright. */
+.lines[data-axis="row"] { flex-direction: column; }
+.lines[data-axis="row"] .line, .lines[data-axis="row"] .peek { flex-direction: row; }
+.lines[data-axis="column"] { flex-direction: row; }
+.lines[data-axis="column"] .line, .lines[data-axis="column"] .peek { flex-direction: column; }
+
+/* ---------------------------------------------------------------- Cell view */
+
+.hood {
+    width: min(100cqw, 100cqh);
+    aspect-ratio: 1;
+    display: grid;
+    gap: 6px;
+    grid-template-columns: 1fr 2fr 1fr;
+    grid-template-rows: 1fr 2fr 1fr;
 }
 
-.pad-move:active {
-    background: #F0D9B5;
+.hood > .slot { grid-row: var(--lr); grid-column: var(--lc); }
+.hood > .tile.slot:not(.center) { opacity: .7; }
+.hood > .tile.slot:not(.center):hover { opacity: 1; }
+.hood > .center { outline: 3px solid var(--focus-ring); outline-offset: -3px; }
+.hood > .center .tile-label { font-size: 15px; }
+
+/* ---------------------------------------------------------------- Sheet */
+
+.sheet {
+    background: var(--sheet);
+    color: var(--sheet-ink);
+    border-radius: 22px 0 0 22px;
+    padding: 14px 16px;
+    overflow: auto;
 }
 
-.pad-move[data-move="zoom-out"] {
-    background: #E8D5B0;
-}
+.grab { display: none; }
+.sheet-title { font-size: 21px; font-weight: 800; margin: 0; }
+.sheet-meta { font-size: 13px; color: var(--muted); margin: 4px 0 0; }
+.sheet-message { font-size: 14px; font-weight: 700; color: #9b2c1f; margin: 8px 0 0; }
 
-.action-bar {
+.care-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    justify-content: center;
-    margin-top: 10px;
+    margin: 12px 0;
 }
 
-.care-action {
+.care-action { flex: 1 1 40%; margin: 0; }
+
+.care-action > button, .care-action summary {
+    display: block;
+    width: 100%;
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 6px;
+    background: var(--action);
+    color: var(--action-ink);
+    font: inherit;
+    font-weight: 700;
+    font-size: 15px;
+    text-align: center;
+    cursor: pointer;
+    list-style: none;
+}
+
+.care-action summary::-webkit-details-marker { display: none; }
+
+.care-action details[open] {
     display: flex;
-    gap: 4px;
-    align-items: center;
-    padding: 6px;
-    background: #FFF8E7;
-    border: 2px solid #8B4513;
-    border-radius: 10px;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .care-action input, .care-action select {
-    width: 96px;
-    padding: 6px;
-    font-size: 1rem;
+    font: inherit;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--rule);
 }
 
-.care-action button {
-    padding: 10px 12px;
-    font-size: 1.1rem;
-    color: white;
-    background: #2E7D32;
-    border: none;
-    border-radius: 8px;
+.care-action details button {
+    border: 2px solid var(--action);
+    border-radius: 10px;
+    padding: 8px;
+    background: transparent;
+    color: var(--sheet-ink);
+    font: inherit;
+    font-weight: 700;
     cursor: pointer;
 }
 
-/* ---- Pad shapes: a compass for a cell, a column of moves for a row, a row of moves for a column ---- */
+/* ---------------------------------------------------------------- Portrait: the bed turns */
 
-.pad[data-shape="vertical"] {
-    grid-template-columns: minmax(64px, auto);
-    grid-template-rows: repeat(3, 64px);
-}
-
-.pad[data-shape="horizontal"] {
-    grid-template-columns: 64px minmax(64px, auto) 64px;
-    grid-template-rows: 64px;
-}
-
-.pad[data-shape="empty"] {
-    display: none;
-}
-
-.pad-move[data-move="zoom-out"] {
-    padding: 0 10px;
-    font-size: 15px;
-    font-weight: bold;
-    color: #4B2E1A;
-}
-
-/* ---- Phone: cells share the width, so a 10-column bed fits a narrow screen ---- */
-
-.bed-grid {
-    width: 96vw;
-    box-sizing: border-box;
-}
-
-.bed-grid .grid-item {
-    width: auto;
-    height: auto;
-    aspect-ratio: 1 / 1;
-    min-width: 0;
-}
-
-.bed-grid .plant-icon {
-    font-size: clamp(12px, 4.5vw, 24pt);
-}
-
-.bed-grid .events {
-    font-size: clamp(8px, 2vw, 14px);
-    overflow: hidden;
-}
-
-@media (max-width: 700px) {
-    .garden-name {
-        font-size: 1.5rem;
+@media (orientation: portrait) {
+    #view {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr) auto;
     }
 
-    #focus-panel {
-        min-width: 0;
-        width: 94vw;
-        box-sizing: border-box;
+    .sheet {
+        border-radius: 22px 22px 0 0;
+        max-height: 42dvh;
+        padding-bottom: calc(14px + env(safe-area-inset-bottom));
     }
 
-    .care-action input, .care-action select {
-        width: 80px;
+    .grab {
+        display: block;
+        width: 44px;
+        height: 5px;
+        border-radius: 3px;
+        background: var(--rule);
+        margin: 0 auto 8px;
     }
+
+    .bed-map {
+        --tile: min(
+            calc((100cqw - var(--label-size)) / var(--rows) - var(--gap)),
+            calc((100cqh - var(--label-size)) / var(--columns) - var(--gap))
+        );
+        grid-template-columns: var(--label-size) repeat(var(--rows), var(--tile));
+        grid-template-rows: var(--label-size) repeat(var(--columns), var(--tile));
+    }
+
+    .bed-map > * { grid-row: var(--pr); grid-column: var(--pc); }
+    .hood > .slot { grid-row: var(--pr); grid-column: var(--pc); }
+
+    /* A row runs down the screen with its neighbors at the sides; a column runs across. */
+    .lines[data-axis="row"] { flex-direction: row; }
+    .lines[data-axis="row"] .line, .lines[data-axis="row"] .peek { flex-direction: column; }
+    .lines[data-axis="column"] { flex-direction: column; }
+    .lines[data-axis="column"] .line, .lines[data-axis="column"] .peek { flex-direction: row; }
 }
 
-/* ---- Voice: keep the SpeechKITT microphone clear of the focus panel ---- */
+/* ---------------------------------------------------------------- Voice */
 
-.centered-container {
-    padding-bottom: 120px;
+/* The SpeechKITT mic sits in the top bar, beside the theme toggle, clear of the care buttons. */
+html body #skitt-ui {
+    top: 10px;
+    right: calc(max(260px, 32%) + 64px);
+    bottom: auto;
+    left: auto;
+    transform: scale(.4);
+    transform-origin: top right;
 }
 
-#skitt-ui {
-    left: auto !important;
-    right: 16px !important;
+@media (orientation: portrait) {
+    html body #skitt-ui { right: 64px; }
 }

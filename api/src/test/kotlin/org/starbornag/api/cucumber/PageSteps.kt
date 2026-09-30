@@ -145,6 +145,26 @@ class PageSteps(private val world: GardenWorld) {
         assertThat(select?.select("option")?.map { it.text() }?.joinToString(" ")).isEqualTo(choices)
     }
 
+    @Then("the sheet's history reads:")
+    fun theSheetsHistoryReads(table: DataTable) {
+        val entries = view.select(".sheet .history li").map {
+            mapOf("what" to it.selectFirst(".what")!!.text(), "when" to it.selectFirst(".when")!!.text())
+        }
+        assertThat(entries).isEqualTo(table.asMaps())
+    }
+
+    @Then("the sheet's history starts with {string}")
+    fun theSheetsHistoryStartsWith(what: String) {
+        assertThat(view.selectFirst(".sheet .history li .what")?.text()).isEqualTo(what)
+    }
+
+    /** "no history" when the sheet has no history list at all; otherwise the list's empty note. */
+    @Then("the sheet's history shows {string}")
+    fun theSheetsHistoryShows(shows: String) {
+        val history = view.selectFirst(".sheet .history")
+        assertThat(history?.text() ?: "no history").isEqualTo(shows)
+    }
+
     @Then("the page offers a light and dark toggle")
     fun thePageOffersALightAndDarkToggle() {
         assertThat(page.selectFirst("button.theme-toggle")).isNotNull()

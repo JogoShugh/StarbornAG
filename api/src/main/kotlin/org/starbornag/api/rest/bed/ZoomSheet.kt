@@ -12,12 +12,20 @@ import kotlinx.html.div
 import kotlinx.html.form
 import kotlinx.html.h2
 import kotlinx.html.input
+import kotlinx.html.li
 import kotlinx.html.nav
+import kotlinx.html.ol
 import kotlinx.html.option
 import kotlinx.html.p
 import kotlinx.html.select
 import kotlinx.html.span
 import kotlinx.html.summary
+import org.starbornag.api.domain.bed.BedCellPlanted
+import org.starbornag.api.domain.bed.BedCellWatered
+import org.starbornag.api.domain.bed.BedEvent
+import org.starbornag.api.domain.bed.BedFertilized
+import org.starbornag.api.domain.bed.BedHarvested
+import org.starbornag.api.domain.bed.BedMulched
 import org.starbornag.api.domain.bed.Focus
 import org.starbornag.api.domain.bed.Move
 
@@ -59,7 +67,8 @@ object ZoomSheet {
         }
     }
 
-    fun FlowContent.sheet(resource: FocusResource, message: String?) {
+    /** [history] is the cell's own history, oldest first, for a cell view; null for wider views. */
+    fun FlowContent.sheet(resource: FocusResource, message: String?, history: List<BedEvent>?) {
         div {
             classes = setOf("sheet")
             div { classes = setOf("grab") }
@@ -76,8 +85,40 @@ object ZoomSheet {
                 +message
             }
             careActions(resource)
+            if (history != null) history(history)
         }
     }
+
+    /** What happened to the soil, newest first, with how long ago. */
+    private fun FlowContent.history(history: List<BedEvent>) {
+        if (history.isEmpty()) {
+            p {
+                classes = setOf("history", "empty")
+                +"Nothing yet"
+            }
+            return
+        }
+        ol {
+            classes = setOf("history")
+            history.asReversed().forEach { event ->
+                li {
+                    span { classes = setOf("what"); +describe(event) }
+                    span { classes = setOf("when"); +event.startedDescription }
+                }
+            }
+        }
+    }
+
+    private fun describe(event: BedEvent): String = when (event) {
+        is BedCellPlanted -> "${plantTypeToIcon(event.plantType)} Planted ${event.plantType}".trim() +
+            cultivar(event.plantCultivar)
+        is BedCellWatered -> "💧 Watered"
+        is BedFertilized -> "🌿 Fed ${event.fertilizer}".trim()
+        is BedMulched -> "🪵 Mulched with ${event.material}".removeSuffix(" with ")
+        is BedHarvested -> "🧺 Harvested ${event.plantType}" + cultivar(event.plantCultivar)
+    }
+
+    private fun cultivar(name: String) = if (name.isEmpty()) "" else " · $name"
 
     private fun FlowContent.careActions(resource: FocusResource) {
         div {
@@ -133,8 +174,7 @@ object ZoomSheet {
             single != null && single.planting.plantType.isNotEmpty() ->
                 with(single.planting) {
                     val name = plantType.replaceFirstChar { it.uppercase() }
-                    val cultivar = if (plantCultivar.isEmpty()) "" else " · $plantCultivar"
-                    "${plantTypeToIcon(plantType)} $name".trim() + cultivar
+                    "${plantTypeToIcon(plantType)} $name".trim() + cultivar(plantCultivar)
                 }
             else -> resource.focus
         }

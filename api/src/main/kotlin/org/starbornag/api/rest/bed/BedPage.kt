@@ -87,7 +87,7 @@ object BedPage {
                     }
                 }
             }
-            sheet(resource, message)
+            sheet(resource, message, (focus as? Focus.OnCell)?.let { layout.cell(it.position)?.events })
         }
     }
 

@@ -402,3 +402,22 @@ html body #skitt-ui {
 @media (orientation: portrait) {
     html body #skitt-ui { right: 64px; }
 }
+
+/* ---------------------------------------------------------------- Cell history */
+
+.history {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    font-size: 14px;
+}
+
+.history li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+.history .when, .history.empty { color: var(--muted); white-space: nowrap; }

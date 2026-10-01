@@ -8,8 +8,9 @@ data class BedAction(
 )
 
 sealed class BedCommand : BedId {
-    data class      PrepareBed(
-        override val bedId: UUID,
+    /** Prepares a new bed; without a [bedId] the bed gets a new one. */
+    data class PrepareBed(
+        override val bedId: UUID = UUID.randomUUID(),
         val name: String,
         val dimensions: Dimensions,
         val cellBlockSize: Int = 1

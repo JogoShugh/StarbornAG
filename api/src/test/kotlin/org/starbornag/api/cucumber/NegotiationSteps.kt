@@ -82,6 +82,41 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         assertThat(buttons).isEqualTo(forms)
     }
 
+    @Then("the form {string} in the answer requires {string}")
+    fun theFormInTheAnswerRequires(form: String, fields: String) {
+        val required = json["_forms"][form]["schema"]["required"].map { it.asText() }.sorted()
+        assertThat(required.joinToString(" ")).isEqualTo(fields)
+    }
+
+    @Then("the form {string} in the answer requires {string} of its {string}")
+    fun theFormInTheAnswerRequiresOf(form: String, fields: String, property: String) {
+        val nested = json["_forms"][form]["schema"]["properties"][property]
+        assertThat(nested["required"].map { it.asText() }.sorted().joinToString(" ")).isEqualTo(fields)
+    }
+
+    /** Posts the body to the form's own target, with the form's method and content type. */
+    @When("an agent submits the form {string} from the answer with {string}")
+    fun anAgentSubmitsTheForm(form: String, body: String) {
+        val theForm = json["_forms"][form]
+        answer = page.send(
+            HttpRequest.newBuilder(page.uri(theForm["_links"]["target"]["href"].asText()))
+                .header("Content-Type", theForm["contentType"].asText())
+                .header("Accept", "application/hal+json")
+                .method(theForm["method"].asText(), HttpRequest.BodyPublishers.ofString(body))
+        )
+    }
+
+    @Then("the answer status is {int}")
+    fun theAnswerStatusIs(status: Int) {
+        assertThat(answer.statusCode()).isEqualTo(status)
+    }
+
+    @Then("the bed at the answer's Location is named {string}")
+    fun theBedAtTheLocationIsNamed(name: String) {
+        aClientAsksForTheAddress(answer.headers().firstValue("Location").orElseThrow(), "application/hal+json")
+        assertThat((json["name"] ?: json["bedName"]).asText()).isEqualTo(name)
+    }
+
     @Then("the answer is {string}")
     fun theAnswerIs(mediaType: String) {
         assertThat(answer.headers().firstValue("Content-Type").orElse("").substringBefore(";")).isEqualTo(mediaType)

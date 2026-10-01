@@ -134,6 +134,15 @@ object HalSchemaForms {
         )
     }
 
+    /** A bed's size: rows and columns are required, a raised bed's height is not. */
+    private fun dimensionsSchema(): ObjectNode {
+        val dimensions = JsonNodeFactory.instance.objectNode().put("type", "object")
+        val properties = dimensions.putObject("properties")
+        listOf("rows", "columns", "height").forEach { properties.putObject(it).put("type", "integer") }
+        dimensions.putArray("required").add("rows").add("columns")
+        return dimensions
+    }
+
     private fun letterField(letters: List<String>) = text().put("title", "Row").also { field ->
         field.putArray("enum").apply { letters.forEach(::add) }
     }
@@ -141,11 +150,17 @@ object HalSchemaForms {
     private fun numberField(range: IntRange) = JsonNodeFactory.instance.objectNode()
         .put("type", "integer").put("title", "Column").put("minimum", range.first).put("maximum", range.last)
 
-    /** The form that prepares a new bed: its id, name and size are the client's to choose. */
+    /**
+     * The form that prepares a new bed: its name and size are the client's to choose, and so is its id
+     * if the client wants one; left out, the server chooses it.
+     */
     fun prepareBed(): HalForm {
         val schema = generator.generateSchema(PrepareBed::class.java)
-        schema.with("properties").set<ObjectNode>("bedId", text().put("format", "uuid"))
-        schema.putArray("required").apply { listOf("bedId", "name", "dimensions").forEach(::add) }
+        schema.remove(listOf("\$defs", "definitions"))
+        val properties = schema.with("properties")
+        properties.set<ObjectNode>("bedId", text().put("format", "uuid"))
+        properties.set<ObjectNode>("dimensions", dimensionsSchema())
+        schema.putArray("required").apply { listOf("name", "dimensions").forEach(::add) }
         return HalForm(
             links = mapOf("target" to mapOf("href" to "/api/beds")),
             method = "POST",

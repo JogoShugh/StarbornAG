@@ -54,9 +54,6 @@ object HalSchemaForms {
         CareAction.HARVEST to FormSpec("harvest-crop", "harvest", CellCommand.Harvest::class)
     )
 
-    private const val LOCATION_DESCRIPTION =
-        "Cells as spoken: A1, B2 to C4, A1 A3 B5, or 3:2 (letter = row, number = column). Omit for the whole bed."
-
     private val generator = SchemaGenerator(
         SchemaGeneratorConfigBuilder(SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON).with(JacksonModule()).build()
     )
@@ -75,7 +72,7 @@ object HalSchemaForms {
         val possible = possibleCare(cells)
         return CareAction.entries.filter { it in possible.actions }.associate { action ->
             val spec = specs.getValue(action)
-            val schema = schemaFor(spec.command, bed)
+            val schema = FormWords.describe(spec.id, schemaFor(spec.command, bed))
             if (action == CareAction.HARVEST) {
                 schema.enumerate("plantType", possible.harvestable)
                 schema.enumerate("plantCultivar", possible.harvestableCultivars)
@@ -138,17 +135,23 @@ object HalSchemaForms {
     private fun dimensionsSchema(): ObjectNode {
         val dimensions = JsonNodeFactory.instance.objectNode().put("type", "object")
         val properties = dimensions.putObject("properties")
-        listOf("rows", "columns", "height").forEach { properties.putObject(it).put("type", "integer") }
+        listOf(
+            "rows" to "How many rows of cells", "columns" to "How many columns", "height" to "How tall the bed is"
+        ).forEach { (name, description) ->
+            properties.putObject(name).put("type", "integer").put("description", description)
+        }
         dimensions.putArray("required").add("rows").add("columns")
         return dimensions
     }
 
-    private fun letterField(letters: List<String>) = text().put("title", "Row").also { field ->
+    private fun letterField(letters: List<String>) = text().put("title", "Row").put("description", "The row's letter")
+        .also { field ->
         field.putArray("enum").apply { letters.forEach(::add) }
     }
 
     private fun numberField(range: IntRange) = JsonNodeFactory.instance.objectNode()
-        .put("type", "integer").put("title", "Column").put("minimum", range.first).put("maximum", range.last)
+        .put("type", "integer").put("title", "Column").put("description", "The column's number")
+        .put("minimum", range.first).put("maximum", range.last)
 
     /**
      * The form that prepares a new bed: its name and size are the client's to choose, and so is its id
@@ -161,6 +164,7 @@ object HalSchemaForms {
         properties.set<ObjectNode>("bedId", text().put("format", "uuid"))
         properties.set<ObjectNode>("dimensions", dimensionsSchema())
         schema.putArray("required").apply { listOf("name", "dimensions").forEach(::add) }
+        FormWords.describe("prepare-bed", schema)
         return HalForm(
             links = mapOf("target" to mapOf("href" to "/api/beds")),
             method = "POST",
@@ -180,7 +184,7 @@ object HalSchemaForms {
         properties.remove("action")
         properties.set<ObjectNode>("bedId", text().put("format", "uuid").put("const", bed.id.toString()))
         properties.set<ObjectNode>("started", text().put("format", "date-time"))
-        properties.set<ObjectNode>("location", text().put("description", LOCATION_DESCRIPTION))
+        properties.set<ObjectNode>("location", text().put("description", FormWords.LOCATION_DESCRIPTION))
         val required = command.primaryConstructor!!.parameters
             .filter { !it.isOptional && !it.type.isMarkedNullable }
             .mapNotNull { it.name }

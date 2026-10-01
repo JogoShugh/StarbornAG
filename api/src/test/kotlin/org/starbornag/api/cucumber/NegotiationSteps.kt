@@ -29,9 +29,12 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         assertThat(answer.statusCode()).isEqualTo(200)
     }
 
+    /** An absolute address, or "Mars:/focus/cell/B2" for an address inside the bed named Mars. */
     @When("a client asks for {string} accepting {string}")
     fun aClientAsksForTheAddress(address: String, accept: String) {
-        answer = ask(address, accept)
+        val inBed = Regex("^([^/:]+):(/.*)$").find(address)
+        val path = inBed?.let { "/beds/${world.bedId(it.groupValues[1])}${it.groupValues[2]}" } ?: address
+        answer = ask(path, accept)
         assertThat(answer.statusCode()).isEqualTo(200)
     }
 
@@ -115,6 +118,27 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
     fun theBedAtTheLocationIsNamed(name: String) {
         aClientAsksForTheAddress(answer.headers().firstValue("Location").orElseThrow(), "application/hal+json")
         assertThat((json["name"] ?: json["bedName"]).asText()).isEqualTo(name)
+    }
+
+    @Then("the forms are titled {string}")
+    fun theFormsAreTitled(titles: String) {
+        val named = json["_forms"].joinToString(", ") { it["schema"]["title"]?.asText() ?: "(untitled)" }
+        assertThat(named).isEqualTo(titles)
+    }
+
+    @Then("every field of every form has a title and a description")
+    fun everyFieldHasATitleAndADescription() {
+        val lacking = json["_forms"].fields().asSequence().flatMap { (id, form) ->
+            form["schema"]["properties"].fields().asSequence()
+                .filter { (_, field) -> !field.has("title") || !field.has("description") }
+                .map { (name, _) -> "$id.$name" }
+        }.toList()
+        assertThat(lacking).isEqualTo(emptyList())
+    }
+
+    @Then("the field {string} of the form {string} is described as {string}")
+    fun theFieldIsDescribedAs(field: String, form: String, description: String) {
+        assertThat(json["_forms"][form]["schema"]["properties"][field]["description"].asText()).isEqualTo(description)
     }
 
     @Then("the answer is {string}")

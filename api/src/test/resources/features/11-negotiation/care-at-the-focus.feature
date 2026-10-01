@@ -7,7 +7,7 @@ Feature: Care is recorded at the focus's own address, by people and agents alike
   so that the page and the agents act through one door and answer in their own view.
 
   The page posts its form fields; an agent posts JSON, as its form says. Each gets the focus back in
-  its own view, and care the soil rules refuse is a conflict for the agent.
+  its own view, and care the soil rules refuse is a conflict for the agent (see errors.feature).
 
   Background:
     Given a client has prepared the bed "Mars" with 4 rows, 8 columns and cell block size 1
@@ -34,4 +34,4 @@ Feature: Care is recorded at the focus's own address, by people and agents alike
   Scenario: Care the soil rules refuse is a conflict for an agent
     When an agent posts "plant" as JSON to the focus "cell/A1" of the bed "Mars"
     Then the response status is 409
-    And the response is "application/problem+json"
+    And the response is "application/vnd.error+json"

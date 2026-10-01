@@ -37,7 +37,25 @@ data class FocusResource(
     @get:JsonProperty("_forms") val forms: Map<String, HalForm>,
     @get:JsonProperty("_embedded") val embedded: Map<String, List<JournalEntry>> = emptyMap()
 ) {
+    /**
+     * Checks a submitted body against this focus's own form for [action]: every required field the
+     * server does not fill itself must be there. Without a form (the action is not possible here) the
+     * soil rules answer instead.
+     *
+     * @throws FormIncomplete naming the missing fields.
+     */
+    fun requireFieldsOf(action: String, fields: Map<String, Any?>) {
+        val form = forms.values.firstOrNull { it.links.getValue("target").getValue("href").endsWith("/$action") }
+            ?: return
+        val missing = form.schema.get("required").map { it.asText() }
+            .filter { it !in FILLED_BY_THE_SERVER && fields[it] == null }
+        if (missing.isNotEmpty()) throw FormIncomplete(missing.sorted())
+    }
+
     companion object {
+        /** Fields the server sets from the address or the clock. */
+        private val FILLED_BY_THE_SERVER = setOf("bedId", "location", "started")
+
         /** How many recent commands come embedded unless the client asks for another number. */
         const val RECENT = 10
 

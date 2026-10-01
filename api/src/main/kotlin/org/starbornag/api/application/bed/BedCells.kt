@@ -1,6 +1,7 @@
 package org.starbornag.api.application.bed
 
 import org.starbornag.api.domain.bed.BedCell
+import org.starbornag.api.domain.bed.CellAlreadyPlanted
 import org.starbornag.api.domain.bed.BedEvent
 import org.starbornag.api.domain.bed.cellsAt
 import org.starbornag.api.domain.bed.command.BedCommand.CellCommand
@@ -31,7 +32,12 @@ class BedCells(
     suspend fun handle(command: CellCommand): List<BedEvent> {
         val bed = beds.find(command.bedId) ?: throw UnknownBed(command.bedId)
         val named = bed.cellsAt(command.location).map { find(it) ?: BedCell(it, bed.id) }
-        return BedCell.targets(command, named).map { it.id }.flatMap { cellId ->
+        val targets = try {
+            BedCell.targets(command, named)
+        } catch (refused: CellAlreadyPlanted) {
+            throw refused.locatedIn(bed)
+        }
+        return targets.map { it.id }.flatMap { cellId ->
             val decide = BedCell.decide(bed.id, cellId, command)
             var recorded = emptyList<BedEvent>()
             repository.handle(cellId) { cell -> decide(cell).also { recorded = it } }

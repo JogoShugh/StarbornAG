@@ -5,6 +5,7 @@ import assertk.assertions.contains
 import assertk.assertions.each
 import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
+import assertk.assertions.isTrue
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.cucumber.java.en.Given
@@ -204,6 +205,46 @@ class HttpSteps(private val world: GardenWorld) {
         val latest = body["_embedded"]["recent"][0]
         assertThat(latest["type"].asText()).isEqualTo(type)
         assertThat(latest["cells"].joinToString(" ") { it.asText() }).isEqualTo(cells)
+    }
+
+    @When("an agent posts {string} to {string} of the bed {string}")
+    fun anAgentPostsTo(body: String, target: String, bed: String) {
+        send(
+            HttpRequest.newBuilder(uri("/beds/${world.bedId(bed)}/$target"))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/hal+json")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+        )
+    }
+
+    @When("a client asks for {string} of the bed {string} expecting an error")
+    fun aClientAsksForExpectingAnError(address: String, bed: String) {
+        val request = HttpRequest.newBuilder(uri("/beds/${world.bedId(bed)}$address"))
+        send(request.header("Accept", "application/hal+json").GET())
+        assertThat(response.statusCode() >= 400).isTrue()
+    }
+
+    @Then("the error message is {string}")
+    fun theErrorMessageIs(message: String) {
+        assertThat(body["message"].asText()).isEqualTo(message)
+    }
+
+    /** The resource the error is about, relative to the bed's own address. */
+    @Then("the error is about {string}")
+    fun theErrorIsAbout(about: String) {
+        val href = body["_links"]["about"]["href"].asText()
+        assertThat(href.substringAfter("/beds/").substringAfter("/")).isEqualTo(about)
+    }
+
+    @Then("the error is about the bed {string}")
+    fun theErrorIsAboutTheBed(bed: String) {
+        assertThat(body["_links"]["about"]["href"].asText()).isEqualTo("/beds/${world.bedId(bed)}")
+    }
+
+    @Then("the field errors are {string}")
+    fun theFieldErrorsAre(paths: String) {
+        val listed = body["_embedded"]["errors"].map { it["path"].asText() }.sorted()
+        assertThat(listed.joinToString(" ")).isEqualTo(paths)
     }
 
     @When("an agent posts {string} as JSON to the focus {string} of the bed {string}")

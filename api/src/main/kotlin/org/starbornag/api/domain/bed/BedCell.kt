@@ -33,7 +33,9 @@ data class BedCell(
          */
         fun targets(command: CellCommand, named: List<BedCell>): List<BedCell> =
             when (command) {
-                is CellCommand.PlantSeedling -> named.onEach { if (it.isPlanted) throw CellAlreadyPlanted(it.id) }
+                is CellCommand.PlantSeedling -> named.also { cells ->
+                    cells.filter { it.isPlanted }.map { it.id }.ifEmpty { null }?.let { throw CellAlreadyPlanted(it) }
+                }
                 is CellCommand.Harvest -> named
                     .filter { it.isGrowing(command.plantType) }
                     .ifEmpty { throw NothingToHarvest(command.plantType) }
@@ -74,7 +76,24 @@ data class BedCell(
     }
 }
 
-class CellAlreadyPlanted(val cellId: UUID) : IllegalStateException("Cell $cellId is already planted")
+/**
+ * Planting is refused because these cells already grow something. Named by [labels] ("A1") once the
+ * bed has placed them (see [locatedIn]), otherwise by id.
+ */
+class CellAlreadyPlanted(val cellIds: List<UUID>, val labels: List<String> = emptyList()) :
+    IllegalStateException(sayPlanted(labels.ifEmpty { cellIds.map { "Cell $it" } })) {
+
+    /** The same refusal, with each cell named by its place in [bed]. */
+    fun locatedIn(bed: Bed) = CellAlreadyPlanted(cellIds, cellIds.map { id ->
+        bed.positionOf(id)?.let { "${rowLetter(it.row)}${it.column}" } ?: "Cell $id"
+    })
+}
+
+/** "A1 is already planted", "A1, A2 and A3 are already planted". */
+private fun sayPlanted(names: List<String>): String = when (names.size) {
+    1 -> "${names[0]} is already planted"
+    else -> "${names.dropLast(1).joinToString(", ")} and ${names.last()} are already planted"
+}
 
 class NothingToHarvest(val plantType: String) :
     IllegalStateException("None of the named cells is growing $plantType")

@@ -95,6 +95,7 @@ class BedPageController(
     ): ResponseEntity<FocusResource> {
         val path = pathOf(scope, ref)
         val focus = resources.focus(bedId, path)
+        focus.requireFieldsOf(action, fields)
         val payload = mapOf("started" to Instant.now().toString()) + fields +
             mapOf("bedId" to bedId.toString(), "location" to focus.location)
         bedCells.handle(bedCommandMapper.convertCommand(action, payload) as CellCommand)

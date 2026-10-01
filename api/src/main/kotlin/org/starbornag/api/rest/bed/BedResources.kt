@@ -39,6 +39,13 @@ class BedResources(private val beds: Beds, private val bedCells: BedCells) {
 
     suspend fun history(bedId: UUID): BedResourceWithHistory = BedResourceWithHistory.from(bed(bedId))
 
+    /** The journal of the focus at [path], folded [by] cell, row, column or time. */
+    suspend fun journal(bedId: UUID, path: String, by: String): JournalResource {
+        val state = currentState(bedId)
+        val focus = Focus.fromPath(path, state.rows.size, state.rows.first().cells.size)
+        return JournalResource.of(bedId, focus, by, state.journal(focus))
+    }
+
     /**
      * The focus at [path] ("cell/B4", "row/B", "column/4" or "bed"), with only its cells loaded.
      *

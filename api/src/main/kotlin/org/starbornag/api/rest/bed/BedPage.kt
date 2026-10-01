@@ -18,7 +18,10 @@ import kotlinx.html.unsafe
 import org.starbornag.api.domain.bed.Focus
 import org.starbornag.api.rest.bed.ZoomMap.bedMap
 import org.starbornag.api.rest.bed.ZoomMap.lines
+import org.starbornag.api.rest.bed.ZoomMap.miniMap
 import org.starbornag.api.rest.bed.ZoomMap.neighborhood
+import org.starbornag.api.rest.bed.ZoomJournal.journal
+import org.starbornag.api.rest.bed.ZoomJournal.mapControl
 import org.starbornag.api.rest.bed.ZoomSheet.crumbs
 import org.starbornag.api.rest.bed.ZoomSheet.sheet
 import org.starbornag.api.rest.bed.ZoomSheet.themeToggle
@@ -32,7 +35,12 @@ import java.util.*
 object BedPage {
     const val VIEW = "#view"
 
-    fun page(bed: BedResourceWithCurrentState, focus: FocusResource, message: String? = null): String =
+    fun page(
+        bed: BedResourceWithCurrentState,
+        focus: FocusResource,
+        message: String? = null,
+        journal: JournalChoice? = null
+    ): String =
         createHTML().html {
             lang = "en"
             attributes["data-theme"] = "auto"
@@ -55,39 +63,57 @@ object BedPage {
                         ext = "sse"
                         sseConnect = "/api/beds/${bed.id}/events?clientId=${UUID.randomUUID()}"
                     }
-                    view(bed, focus, message)
+                    view(bed, focus, message, journal)
                 }
             }
         }
 
     /** What htmx swaps in when the focus moves or care is recorded: only the view. */
-    fun fragment(bed: BedResourceWithCurrentState, focus: FocusResource, message: String? = null): String =
-        createHTML().div { view(bed, focus, message) }.trim().removePrefix("<div>").removeSuffix("</div>")
+    fun fragment(
+        bed: BedResourceWithCurrentState,
+        focus: FocusResource,
+        message: String? = null,
+        journal: JournalChoice? = null
+    ): String = createHTML().div { view(bed, focus, message, journal) }
+        .trim().removePrefix("<div>").removeSuffix("</div>")
 
-    private fun FlowContent.view(bed: BedResourceWithCurrentState, resource: FocusResource, message: String?) {
+    /** The view at the focus; with [choice], the journal replaces the sheet and the map shrinks or hides. */
+    private fun FlowContent.view(
+        bed: BedResourceWithCurrentState,
+        resource: FocusResource,
+        message: String?,
+        choice: JournalChoice?
+    ) {
         val layout = ZoomMap.Layout(bed)
         val focus = Focus.fromPath(resource.path, layout.rows, layout.columns)
         div {
             id = "view"
             attributes["data-focus"] = resource.path
             attributes["data-zoom"] = resource.path.substringBefore("/")
+            if (choice != null) attributes["data-journal"] = choice.size
             div {
                 classes = setOf("map-area")
                 div {
                     classes = setOf("topbar")
                     crumbs(resource, focus, layout.rows, layout.columns)
+                    if (choice?.size == "full") mapControl(resource.bedId, focus, choice)
                     themeToggle()
                 }
-                div {
+                if (choice?.size != "full") div {
                     classes = setOf("map")
-                    when (focus) {
-                        is Focus.OnCell -> neighborhood(layout, focus.position)
-                        is Focus.OnRow, is Focus.OnColumn -> lines(layout, focus)
-                        Focus.OnBed -> bedMap(layout)
+                    when {
+                        choice != null -> miniMap(layout, focus)
+                        focus is Focus.OnCell -> neighborhood(layout, focus.position)
+                        focus is Focus.OnRow || focus is Focus.OnColumn -> lines(layout, focus)
+                        else -> bedMap(layout)
                     }
                 }
             }
-            sheet(resource, message, (focus as? Focus.OnCell)?.let { layout.cell(it.position)?.events })
+            if (choice != null) {
+                journal(resource, focus, bed.journal(focus), choice)
+            } else {
+                sheet(resource, message, (focus as? Focus.OnCell)?.let { layout.cell(it.position)?.events })
+            }
         }
     }
 

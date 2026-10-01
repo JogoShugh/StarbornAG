@@ -67,6 +67,33 @@ object ZoomMap {
     }
 
     /**
+     * The whole bed, small, while the journal is open: plants only, with the cells of [focus] outlined
+     * (unless that is the whole bed). Tapping a cell zooms there.
+     */
+    fun FlowContent.miniMap(layout: Layout, focus: Focus) {
+        div {
+            classes = setOf("bed-map", "mini-map")
+            attributes["style"] = "--rows: ${layout.rows}; --columns: ${layout.columns};"
+            div { classes = setOf("corner"); place(1, 1) }
+            for (column in 1..layout.columns) div { classes = setOf("col-label"); place(1, column + 1); +"$column" }
+            for (row in 1..layout.rows) {
+                div { classes = setOf("row-label"); place(row + 1, 1); +rowLetter(row) }
+                for (column in 1..layout.columns) {
+                    val position = CellPosition(row, column)
+                    val outlined = focus != Focus.OnBed && focus.covers(position)
+                    div {
+                        classes = if (outlined) setOf("mini", "in-focus") else setOf("mini")
+                        attributes["data-cell"] = "${rowLetter(row)}$column"
+                        place(row + 1, column + 1)
+                        focusLink(layout.bedId, "cell/${rowLetter(row)}$column")
+                        +plantTypeToIcon(layout.cell(position)?.planting?.plantType.orEmpty())
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * A row or a column in focus, with the one before and after peeking in where they really are;
      * past the bed's edge the peek is hatched.
      */

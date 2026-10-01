@@ -71,7 +71,13 @@ object ZoomSheet {
     fun FlowContent.sheet(resource: FocusResource, message: String?, history: List<BedEvent>?) {
         div {
             classes = setOf("sheet")
-            div { classes = setOf("grab") }
+            button(type = ButtonType.button) {
+                classes = setOf("handle")
+                attributes["aria-label"] = "Open the journal"
+                journalLink(resource.bedId, resource.path, JournalChoice())
+                span { classes = setOf("grab") }
+                +"Journal ▴"
+            }
             h2 {
                 classes = setOf("sheet-title")
                 +title(resource)

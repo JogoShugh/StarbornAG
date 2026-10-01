@@ -25,11 +25,12 @@ import java.net.http.HttpResponse
 class PageSteps(private val world: GardenWorld) {
 
     private val http = HttpClient.newHttpClient()
-    private lateinit var page: Document
-    private var addressBar: String = ""
+    lateinit var page: Document
+        private set
+    var addressBar: String = ""
     private var lastContentType: String = ""
 
-    private val view: Element get() = page.selectFirst("#view")!!
+    val view: Element get() = page.selectFirst("#view")!!
 
     @When("a gardener opens the bed page of {string}")
     fun aGardenerOpensTheBedPage(bed: String) = open("/beds/${world.bedId(bed)}")
@@ -215,13 +216,13 @@ class PageSteps(private val world: GardenWorld) {
         else -> "diagonal"
     }
 
-    private fun focusOf(element: Element): String = element.attr("hx-get").substringAfter("/focus/")
+    fun focusOf(element: Element): String = element.attr("hx-get").substringAfter("/focus/")
 
     private fun fieldsOf(action: String): List<String> =
         view.selectFirst("form.care-action[data-action=$action]")!!
             .select("input[name], select[name]").map { it.attr("name") }
 
-    private fun open(path: String) {
+    fun open(path: String) {
         val response = send(HttpRequest.newBuilder(uri(path)).GET())
         assertThat(response.statusCode()).isEqualTo(200)
         page = Jsoup.parse(response.body())
@@ -229,7 +230,7 @@ class PageSteps(private val world: GardenWorld) {
     }
 
     /** Follows the element's hx-get like htmx, and records the pushed address when hx-push-url is set. */
-    private fun tap(element: Element) {
+    fun tap(element: Element) {
         val path = element.attr("hx-get")
         swapIn(send(HttpRequest.newBuilder(uri(path)).header("HX-Request", "true").GET()))
         if (element.attr("hx-push-url") == "true") addressBar = path
@@ -242,9 +243,9 @@ class PageSteps(private val world: GardenWorld) {
         page.selectFirst("#view")!!.replaceWith(fragment.selectFirst("#view")!!)
     }
 
-    private fun send(request: HttpRequest.Builder): HttpResponse<String> =
+    fun send(request: HttpRequest.Builder): HttpResponse<String> =
         http.send(request.build(), HttpResponse.BodyHandlers.ofString())
             .also { lastContentType = it.headers().firstValue("Content-Type").orElse("") }
 
-    private fun uri(path: String) = URI.create(TestApplication.baseUrl + path)
+    fun uri(path: String) = URI.create(TestApplication.baseUrl + path)
 }

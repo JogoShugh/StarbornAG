@@ -41,6 +41,16 @@ class BedPageController(
         @RequestHeader("HX-Request", required = false) htmx: String?
     ) = render(bedId, "$scope/$ref", htmx != null)
 
+    /** The journal of the focus, folded [by] cell, row, column or time, open half or full. */
+    @GetMapping("/beds/{bedId}/journal")
+    suspend fun journal(
+        @PathVariable bedId: UUID,
+        @RequestParam(defaultValue = "bed") focus: String,
+        @RequestParam(defaultValue = "cell") by: String,
+        @RequestParam(defaultValue = "half") size: String,
+        @RequestHeader("HX-Request", required = false) htmx: String?
+    ) = render(bedId, focus, htmx != null, JournalChoice.of(by, size))
+
     @PostMapping("/beds/{bedId}/focus/bed/{action}")
     suspend fun careForWholeBed(
         @PathVariable bedId: UUID,
@@ -57,10 +67,19 @@ class BedPageController(
         @RequestParam fields: MultiValueMap<String, String>
     ) = care(bedId, "$scope/$ref", action, fields)
 
-    private suspend fun render(bedId: UUID, path: String, fragmentOnly: Boolean): ResponseEntity<String> {
+    private suspend fun render(
+        bedId: UUID,
+        path: String,
+        fragmentOnly: Boolean,
+        journal: JournalChoice? = null
+    ): ResponseEntity<String> {
         val focus = resources.focus(bedId, path)
         val bed = resources.currentState(bedId)
-        val html = if (fragmentOnly) BedPage.fragment(bed, focus) else BedPage.page(bed, focus)
+        val html = if (fragmentOnly) {
+            BedPage.fragment(bed, focus, journal = journal)
+        } else {
+            BedPage.page(bed, focus, journal = journal)
+        }
         return ResponseEntity.ok().contentType(HTML).body(html)
     }
 

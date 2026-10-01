@@ -182,7 +182,7 @@ body {
 
 .plant-icon { font-size: 50cqmin; line-height: 1; }
 
-.events {
+.tile .events {
     position: absolute;
     bottom: 2px;
     right: 4px;
@@ -421,3 +421,146 @@ html body #skitt-ui {
 }
 
 .history .when, .history.empty { color: var(--muted); white-space: nowrap; }
+
+/* ---------------------------------------------------------------- Journal */
+
+/* The handle opens the journal: a grab bar with a label, in both orientations. */
+.handle, .journal-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 auto 8px;
+}
+
+.handle {
+    flex-direction: column;
+    gap: 3px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 2px 16px;
+}
+
+.handle .grab, .journal-controls .grab {
+    display: block;
+    width: 44px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--rule);
+}
+
+.journal-controls { flex-wrap: wrap; }
+.journal-controls .grab { flex-basis: 100%; max-width: 44px; margin: 0 calc(50% - 22px); }
+
+.journal-control {
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    background: transparent;
+    color: var(--sheet-ink);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 4px 12px;
+    cursor: pointer;
+}
+
+.topbar .journal-control {
+    border: 2px solid var(--pill-ink);
+    background: var(--pill);
+    color: var(--pill-ink);
+    margin-left: auto;
+}
+
+/* Half: the small map takes the top third; full: the journal takes the whole screen. */
+#view[data-journal] .sheet { max-height: none; overflow: auto; }
+#view[data-journal="full"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+.topbar .journal-control { margin-right: 72px; }
+#view[data-journal="full"] .sheet { border-radius: 16px 16px 0 0; }
+
+.mini {
+    border-radius: 4px;
+    background: var(--soil);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(var(--tile) * .62);
+    overflow: hidden;
+}
+
+.mini-map .row-label, .mini-map .col-label { font-size: 10px; }
+.mini.in-focus { outline: 2px solid var(--focus-ring); outline-offset: -1px; }
+.mini-map:has(.in-focus) .mini:not(.in-focus) { opacity: .35; }
+
+.journal-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+
+.tabs {
+    display: flex;
+    background: var(--rule);
+    border-radius: 12px;
+    padding: 3px;
+    margin: 10px 0;
+}
+
+.tab {
+    flex: 1;
+    text-align: center;
+    padding: 7px 0;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.tab.on { background: var(--sheet); color: var(--sheet-ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .15); cursor: default; }
+
+.totals { display: flex; gap: 6px; margin-bottom: 8px; }
+.totals > div { flex: 1; border: 1px solid var(--rule); border-radius: 10px; padding: 6px 4px; text-align: center; }
+.totals .value { display: block; font-size: 17px; }
+.totals span { font-size: 11px; color: var(--muted); }
+
+.cards { margin: 0; padding: 0; list-style: none; }
+.journal .cards { display: grid; gap: 6px; align-content: start; }
+
+.cell-card, .line-summary, .timeline .command {
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 7px 10px;
+}
+
+.cell-card { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.chip { background: var(--sheet-ink); color: var(--sheet); border-radius: 7px; padding: 3px 6px; font-weight: 800; font-size: 12px; min-width: 30px; text-align: center; }
+.card-icon { font-size: 24px; width: 30px; text-align: center; }
+.card-body { flex: 1; min-width: 0; }
+.plant { font-weight: 700; font-size: 14px; }
+.card-meta { font-size: 12px; color: var(--muted); display: flex; gap: 8px; }
+.last { font-size: 11px; color: var(--muted); text-align: right; max-width: 30%; }
+
+.line-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; cursor: pointer; margin-bottom: 4px; }
+.grows { font-size: 12px; color: var(--muted); text-align: right; }
+.line-summary ol { margin: 0; padding: 0; list-style: none; }
+
+.command { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; }
+.line-summary .command { border-top: 1px solid var(--rule); }
+.command .what { white-space: nowrap; }
+.command .cells { flex: 1; }
+.command .when { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+.strip { display: flex; gap: 2px; }
+.strip i { width: 8px; height: 8px; border-radius: 2px; background: var(--rule); display: block; }
+.strip i.on { background: var(--action); }
+
+@media (orientation: portrait) {
+    #view[data-journal="half"] { grid-template-rows: auto minmax(0, 1fr); }
+    #view[data-journal="half"] .map { flex: 0 0 auto; height: 30dvh; }
+}
+
+/* Landscape full: the cards fill two columns. */
+@media (orientation: landscape) {
+    #view[data-journal="full"] .journal .cards { grid-template-columns: 1fr 1fr; }
+}

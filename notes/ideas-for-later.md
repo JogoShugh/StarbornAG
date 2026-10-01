@@ -44,6 +44,19 @@ Newest first. Move an item out when it becomes a slice.
   Keep a ready-made view up to date with inline projections, and move the season windows from
   `BedCellAggregateState` there (8-month season, 1-week watering, 1-month fertilizing, 2-week
   harvests).
+- **Journal from a projection (J2).** The bed journal (by cell, row, column, timeline) is built
+  from those same per-cell reads today. A `BedJournal` projection, updated in the append
+  transaction, would let it read one table. A command id in event metadata would make folding
+  events back into commands exact instead of matching kind and start time.
+
+## Bed journal
+
+- **Needs care.** Flag cells that look neglected, for example "dry 3 days" when a planted cell has
+  not been watered for longer than its plant wants. Needs a rule per plant or one global window
+  (the season windows above), so it waits on that decision. Shows as a flag on cell cards and a
+  "⚠ Needs care" filter chip.
+- **Care filter chips** (💧 🌿 🪵 🧺) on the journal, from the mockups.
+- **Drag gesture** on the handle (collapsed, half, full); taps work today.
 
 ## Platform
 

@@ -174,11 +174,14 @@ BODY = r"""<header class="top">
     const links = Object.entries(doc._links || {}).map(([rel, l]) => ({ rel, href: short(l.href), title: l.title }));
     const forms = Object.entries(doc._forms || {}).map(([id, f]) => {
       const props = f.schema.properties || {};
-      const needs = (f.schema.required || []).filter(p => !['bedId', 'started', 'location'].includes(p));
+      const needs = (f.schema.required || []).filter(p => !(props[p] && props[p].readOnly));
       const choices = needs.filter(p => props[p] && props[p].enum).map(p => `${p} ∈ {${props[p].enum.join(', ')}}`);
       const places = f.method === 'GET' && f._links.target.templated ? expansions(f).map(short) : [];
-      return { id, method: f.method, target: short(f._links.target.href), at: (props.location || {}).const, needs, choices,
-               title: f.schema.title, places };
+      // The address the form posts to once its fixed fields (const) fill the template.
+      const resolved = short(f._links.target.href.replace(/\{(\w+)\}/g, (m, n) =>
+        props[n] && props[n].const !== undefined ? String(props[n].const) : m));
+      return { id, method: f.method, target: short(f._links.target.href), resolved, at: (props.location || {}).const, needs,
+               choices, title: f.schema.title, places };
     });
     const facts = Object.entries(doc).filter(([k, v]) => !k.startsWith('_') && v !== null && typeof v !== 'object' && !['bedId', 'id'].includes(k));
     return { links, forms, facts, embedded: doc._embedded || {}, doc };
@@ -214,7 +217,7 @@ BODY = r"""<header class="top">
   function expansions(form) {
     const props = form.schema.properties || {};
     const choices = Object.entries(props).map(([name, p]) => [name,
-      p.enum ? p.enum.map(String) : (p.minimum !== undefined && p.maximum !== undefined)
+      p.const !== undefined ? [String(p.const)] : p.enum ? p.enum.map(String) : (p.minimum !== undefined && p.maximum !== undefined)
         ? Array.from({ length: p.maximum - p.minimum + 1 }, (_, i) => String(p.minimum + i)) : null]);
     if (choices.some(([, v]) => !v)) return [];
     let sets = [{}];
@@ -236,7 +239,7 @@ BODY = r"""<header class="top">
       hal.forms.map(f => `<tr><td class="rel">${esc(f.id)}</td><td class="mono">${esc(f.method)} ${esc(f.target)}${
         f.at ? ` <span class="chip">at ${esc(f.at)}</span>` : ''}</td><td>${esc(f.needs.join(', ') || '—')}${
         f.choices.length ? `<br><span class="mono">${esc(f.choices.join('  '))}</span>` : ''}</td><td>${
-        other && (otherTargets.has(same(f.target)) || (f.places.length && f.places.every(p => otherTaps.has(same(p)))))
+        other && (otherTargets.has(same(f.resolved)) || (f.places.length && f.places.every(p => otherTaps.has(same(p)))))
           ? `<span class="same">✓ same${f.places.length ? ` (${f.places.length} places)` : ''}</span>` : ''}</td></tr>`).join('')}</table></div></div>`);
     for (const [kind, items] of Object.entries(hal.embedded).filter(([, items]) => items.length)) {
       parts.push(`<div class="group"><h4>Embedded ${esc(kind)}</h4><div class="table-wrap"><table>${items.map(i => i.type
@@ -249,7 +252,7 @@ BODY = r"""<header class="top">
   }
 
   function htmlSummary(page, hal) {
-    const forms = new Set((hal?.forms || []).map(f => same(f.target)));
+    const forms = new Set((hal?.forms || []).map(f => same(f.resolved)));
     const links = new Set((hal?.links || []).map(l => same(l.href)));
     const parts = [`<div class="group"><div class="facts"><span class="chip"><b>view</b> ${page.whole ? 'the whole page' : 'only #view (htmx partial)'}</span>${
       page.crumbs.length ? `<span class="chip"><b>crumbs</b> ${esc(page.crumbs.join(' › '))}</span>` : ''}${

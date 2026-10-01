@@ -97,7 +97,7 @@ data class JournalResource(
 ) {
     companion object {
         fun of(bedId: UUID, focus: Focus, by: String, journal: Journal): JournalResource {
-            val base = "/api/beds/$bedId"
+            val base = "/beds/$bedId"
             fun link(path: String) = mapOf("focus" to mapOf("href" to "$base/focus/$path"))
             return JournalResource(
                 bedId = bedId,
@@ -120,9 +120,15 @@ data class JournalResource(
                 links = mapOf(
                     "self" to mapOf("href" to "$base/journal?focus=${focus.path}&by=$by"),
                     "focus" to mapOf("href" to "$base/focus/${focus.path}")
-                )
+                ) + folds(focus).associate { fold ->
+                    "by-$fold" to mapOf("href" to "$base/journal?focus=${focus.path}&by=$fold")
+                }
             )
         }
+
+        /** By row and by column only make sense across the whole bed. */
+        private fun folds(focus: Focus) =
+            if (focus == Focus.OnBed) listOf("cell", "row", "column", "time") else listOf("cell", "time")
 
         private fun CellStory.toEntry(link: (String) -> Map<String, Map<String, String>>) = JournalCell(
             label, planting.plantType, planting.plantCultivar, history.size,

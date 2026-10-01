@@ -51,13 +51,13 @@ class BedResources(private val beds: Beds, private val bedCells: BedCells) {
      *
      * @throws org.starbornag.api.domain.bed.FocusOutsideBed when the focus is not part of the bed.
      */
-    suspend fun focus(bedId: UUID, path: String): FocusResource {
+    suspend fun focus(bedId: UUID, path: String, recent: Int = FocusResource.RECENT): FocusResource {
         val bed = bed(bedId)
         val rows = bed.rows.size
         val columns = bed.rows.first().size
         val focus = Focus.fromPath(path, rows, columns)
         val positions = focus.cells(rows, columns)
         val cells = positions.map { bedCells.load(bed.id, bed.rows[it.row - 1][it.column - 1]) }
-        return FocusResource.of(bed, focus, positions, cells)
+        return FocusResource.of(bed, focus, positions, cells, recent)
     }
 }

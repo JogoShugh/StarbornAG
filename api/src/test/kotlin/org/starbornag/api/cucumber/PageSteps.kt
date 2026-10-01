@@ -222,8 +222,9 @@ class PageSteps(private val world: GardenWorld) {
         view.selectFirst("form.care-action[data-action=$action]")!!
             .select("input[name], select[name]").map { it.attr("name") }
 
+    /** Opens an address the way a browser does, asking for HTML. */
     fun open(path: String) {
-        val response = send(HttpRequest.newBuilder(uri(path)).GET())
+        val response = send(HttpRequest.newBuilder(uri(path)).header("Accept", BROWSER_ACCEPT).GET())
         assertThat(response.statusCode()).isEqualTo(200)
         page = Jsoup.parse(response.body())
         addressBar = path
@@ -248,4 +249,8 @@ class PageSteps(private val world: GardenWorld) {
             .also { lastContentType = it.headers().firstValue("Content-Type").orElse("") }
 
     fun uri(path: String) = URI.create(TestApplication.baseUrl + path)
+
+    private companion object {
+        const val BROWSER_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    }
 }

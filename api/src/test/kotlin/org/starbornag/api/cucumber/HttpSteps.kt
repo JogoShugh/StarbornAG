@@ -120,7 +120,7 @@ class HttpSteps(private val world: GardenWorld) {
 
     @Then("the move links are {string}")
     fun theMoveLinksAre(moves: String) {
-        val links = body["_links"].fieldNames().asSequence().toList() - setOf("self", "bed")
+        val links = body["_links"].fieldNames().asSequence().toList() - setOf("self", "bed", "journal")
         assertThat(links.sorted()).isEqualTo(moves.split(" ").filter { it.isNotEmpty() }.sorted())
     }
 

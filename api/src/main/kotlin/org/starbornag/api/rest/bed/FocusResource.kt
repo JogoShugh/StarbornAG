@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import org.starbornag.api.application.bed.LoadedBedCell
 import org.starbornag.api.domain.bed.Bed
 import org.starbornag.api.domain.bed.BedCellWatered
+import org.starbornag.api.domain.bed.CellStory
+import org.starbornag.api.domain.bed.Journal
 import org.starbornag.api.domain.bed.Focus
 import org.starbornag.api.domain.bed.Planting
 import org.starbornag.api.domain.bed.command.CellPosition
@@ -19,7 +21,9 @@ data class FocusCell(
 
 /**
  * Where the gardener stands in a bed, as HAL with HAL Schema Forms: a link for every possible move
- * (a missing link is an edge of the bed), and forms that act on exactly the cells in focus.
+ * (a missing link is an edge of the bed), a link to the journal, forms that act on exactly the
+ * cells in focus, and the most recent commands embedded. The links are the page's own addresses:
+ * an agent and a browser ask the same address and get their own view of it.
  */
 data class FocusResource(
     val bedId: UUID,
@@ -30,16 +34,27 @@ data class FocusResource(
     val location: String?,
     val cells: List<FocusCell>,
     @get:JsonProperty("_links") val links: Map<String, Map<String, String>>,
-    @get:JsonProperty("_forms") val forms: Map<String, HalForm>
+    @get:JsonProperty("_forms") val forms: Map<String, HalForm>,
+    @get:JsonProperty("_embedded") val embedded: Map<String, List<JournalEntry>> = emptyMap()
 ) {
     companion object {
-        fun of(bed: Bed, focus: Focus, positions: List<CellPosition>, cells: List<LoadedBedCell>): FocusResource {
+        /** How many recent commands come embedded unless the client asks for another number. */
+        const val RECENT = 10
+
+        fun of(
+            bed: Bed,
+            focus: Focus,
+            positions: List<CellPosition>,
+            cells: List<LoadedBedCell>,
+            recent: Int = RECENT
+        ): FocusResource {
             val rows = bed.rows.size
             val columns = bed.rows.first().size
-            val base = "/api/beds/${bed.id}"
+            val base = "/beds/${bed.id}"
             val links = mapOf(
                 "self" to mapOf("href" to "$base/focus/${focus.path}", "title" to focus.label),
-                "bed" to mapOf("href" to base, "title" to bed.name)
+                "bed" to mapOf("href" to base, "title" to bed.name),
+                "journal" to mapOf("href" to "$base/journal?focus=${focus.path}", "title" to "${focus.label} journal")
             ) + focus.moves(rows, columns).map { (move, next) ->
                 // The title names where the move leads, for example "Row B" for zoom-out from B2.
                 move.word to mapOf("href" to "$base/focus/${next.path}", "title" to next.label)
@@ -59,8 +74,14 @@ data class FocusResource(
                     )
                 },
                 links = links,
-                forms = HalSchemaForms.forCells(bed, cells.map { it.state }, focus.spokenLocation(rows, columns))
+                forms = HalSchemaForms.forCells(bed, cells.map { it.state }, focus.spokenLocation(rows, columns)),
+                embedded = mapOf("recent" to recentCommands(positions, cells, recent))
             )
         }
+
+        private fun recentCommands(positions: List<CellPosition>, cells: List<LoadedBedCell>, recent: Int) =
+            Journal(positions.zip(cells) { position, loaded ->
+                CellStory(position, loaded.state.plantings.lastOrNull() ?: Planting("", ""), loaded.history)
+            }).commands().take(recent.coerceAtLeast(0)).map(JournalEntry::of)
     }
 }

@@ -53,6 +53,8 @@ figcaption { color: #eee; font-size: 15px; margin-bottom: 8px; font-weight: 600;
 .t .e { position: absolute; bottom: 1px; right: 3px; font-size: 8px; }
 .mini { border-radius: 4px; background: #3a2a1e; text-align: center; overflow: hidden; }
 .mini-lbl { color: #b8c7b0; font-weight: 800; font-size: 9px; display: flex; align-items: center; justify-content: center; }
+.pill { background: rgba(0,0,0,.45); border: 2px solid #eef3e9; border-radius: 16px; padding: 5px 10px; font-size: 13px; font-weight: 700; }
+.pill.dark { background: #fff; color: #22301f; border-color: #22301f; }
 .lbl { color: #b8c7b0; font-weight: 800; font-size: 12px; display: flex; align-items: center; justify-content: center; }
 .sheet { background: #f4efe4; color: #22301f; border-radius: 22px 22px 0 0; padding: 8px 14px 14px; display: flex; flex-direction: column; min-height: 0; }
 .handle { margin: 0 auto 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: #6d6a5e; font-size: 11px; font-weight: 700; }
@@ -208,31 +210,49 @@ def collapsed():
     return top("<b>Earth</b>") + f'<div class="map">{portrait_bed(54)}</div>' + sheet
 
 
-def journal(tab, body, mini=True):
-    mini_map = f'<div class="map" style="flex:0 0 236px">{mini_bed(17)}</div>' if mini else ""
+def journal(tab, body, full=False):
+    """Half: the mini map stays on top. Full: the journal takes the whole screen; a Map pill brings the map back."""
+    if full:
+        bar = ('<div class="top"><span class="crumbs"><b>Earth</b> · journal</span>'
+               '<span style="display:flex;gap:8px"><span class="pill">🗺 Map</span><span class="toggle">◐</span></span></div>')
+        return (bar + '<div class="sheet" style="flex:1;border-radius:16px 16px 0 0">' + handle("▾ Half · show the map") +
+                '<div style="display:flex;justify-content:space-between;align-items:baseline"><div class="h">Earth journal</div>'
+                '<div class="m">all 50 cells</div></div>' + tabs(tab) + body + "</div>")
+    mini_map = f'<div class="map" style="flex:0 0 236px">{mini_bed(17)}</div>'
     return (top("<b>Earth</b> · journal") + mini_map +
-            '<div class="sheet" style="flex:1">' + handle("▾ Back to the bed") +
+            '<div class="sheet" style="flex:1">' + handle("▴ Full &nbsp;·&nbsp; ▾ Close") +
             '<div style="display:flex;justify-content:space-between;align-items:baseline"><div class="h">Earth journal</div><div class="m">all 50 cells</div></div>'
             + tabs(tab) + body + "</div>")
 
 
-def cells_tab():
+def cells_tab(more=False):
     order = ["A3", "A4", "C5", "C6", "D2", "B1", "E1", "A9"]
+    if more: order = ["A3", "A4", "A1", "A2", "C5", "C6", "C1", "D2", "D3", "B1", "B2", "E1", "A9"]
     flags = {"E1": '<span class="flag">dry 3 days</span>', "A9": ""}
     return STATS + CHIPS + '<div class="list">' + "".join(cell_card(c, flags.get(c, "")) for c in order) + "</div>"
 
 
-def rows_tab():
-    return CHIPS + '<div class="list">' + "".join(row_section(r) for r in "ABCD") + "</div>"
+def rows_tab(rows="ABCD"):
+    return CHIPS + '<div class="list">' + "".join(row_section(r) for r in rows) + "</div>"
 
 
-def columns_tab():
-    return CHIPS + '<div class="list">' + "".join(column_section(c) for c in (1, 6, 9)) + "</div>"
+def columns_tab(columns=(1, 6, 9)):
+    return CHIPS + '<div class="list">' + "".join(column_section(c) for c in columns) + "</div>"
+
+
+def landscape_full():
+    cards = "".join(cell_card(c) for c in ["A3", "A4", "C5", "C6", "D2", "B1", "E1", "A9"])
+    return ('<div class="sheet" style="flex:1;border-radius:0;padding:10px 16px">'
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">'
+            '<span class="h">Earth journal <span class="m">· all 50 cells</span></span>'
+            '<span style="display:flex;gap:8px"><span class="pill dark">🗺 Map</span><span class="pill dark">✕ Close</span></span></div>'
+            + tabs("Cells") + STATS + CHIPS +
+            f'<div class="list" style="display:grid;grid-template-columns:1fr 1fr;column-gap:8px;align-content:start">{cards}</div></div>')
 
 
 def landscape():
     side = ('<div class="sheet" style="width:420px;border-radius:22px 0 0 22px;padding:12px 14px">'
-            '<div style="display:flex;justify-content:space-between;align-items:baseline"><div class="h">Earth journal</div><div class="m">✕ close</div></div>'
+            '<div style="display:flex;justify-content:space-between;align-items:baseline"><div class="h">Earth journal</div><div class="m">⤢ Full · ✕ Close</div></div>'
             + tabs("Cells") + CHIPS + '<div class="list">' + "".join(cell_card(c) for c in ["A3", "C5", "D2", "B1"]) + "</div></div>")
     left = ('<div style="flex:1;display:flex;flex-direction:column">' + top("<b>Earth</b> · journal") +
             f'<div class="map">{mini_bed(30, portrait=False)}</div></div>')
@@ -250,19 +270,20 @@ def scoped():
 
 html = f"""<!doctype html><html><head><meta charset="utf-8"><title>Bed journal</title><style>{CSS}</style></head><body>
 <h1>Bed journal: every cell's history, summarized</h1>
-<p class="sub">Tap the sheet's handle (or drag it up) to open the journal for where you stand. At the bed it covers all 50 cells.
+<p class="sub">The sheet's handle has three stops: collapsed, half (journal with a mini map above it) and full (journal only). Tap or drag it. At the bed it covers all 50 cells.
 The Cells tab is the default: one card per cell, most recent activity first, with care counts and flags such as "dry 3 days".
 Rows and Columns fold the cells' events back into the commands that made them ("Watered A1–A8") with a strip showing which cells each reached.
 Every card and section is a way in: tap it to zoom the map there.</p>
 <div class="phones">
-{phone("1 · Bed, sheet collapsed", collapsed(), note="The handle gains a label: Journal ▴. Tap or drag up.")}
-{phone("2 · Journal, Cells tab (default)", journal("Cells", cells_tab()), note="Mini map stays on top. Bed totals, care filter chips, one card per cell sorted by latest activity. Tap a card: cell view.")}
-{phone("3 · Journal, Rows tab", journal("Rows", rows_tab()), note="Per row: what grows, then each command once, with the cells it reached. Tap Row C: row view.")}
-{phone("4 · Journal, Columns tab", journal("Columns", columns_tab()), note="Same per column; the plant icons read top to bottom as A–E.")}
-{phone("5 · From Row C: journal scoped to the row", scoped(), note="Opened below the bed, the journal covers only the focus, and only the Cells tab makes sense.")}
+{phone("1 · Bed, sheet collapsed", collapsed(), note="The handle gains a label: Journal ▴. Tap or drag up: half. Drag on up: full.")}
+{phone("2 · Half: Cells tab (default)", journal("Cells", cells_tab()), note="Mini map stays on top. Bed totals, care filter chips, one card per cell by latest activity. Tap a card: cell view.")}
+{phone("3 · Full: Cells tab", journal("Cells", cells_tab(more=True), full=True), note="Drag the handle to the top or tap ▴ Full: the journal fills the screen. 🗺 Map or dragging down goes back to half.")}
+{phone("4 · Full: Rows tab", journal("Rows", rows_tab("ABCDE"), full=True), note="Per row: what grows, then each command once with the cells it reached. Tap Row C: row view.")}
+{phone("5 · Full: Columns tab", journal("Columns", columns_tab((1, 2, 6, 9)), full=True), note="Same per column; the plant icons read top to bottom as A–E.")}
+{phone("6 · Half, from Row C: scoped to the row", scoped(), note="Opened below the bed, the journal covers only the focus; Row C is outlined on the mini map.")}
 </div>
-<h1 style="margin-top:28px">Landscape</h1><p class="sub">The side sheet widens into the journal; the whole bed stays visible on the left.</p>
-<div class="phones">{phone("6 · Landscape journal", landscape(), "land")}</div>
+<h1 style="margin-top:28px">Landscape</h1><p class="sub">Half: the side sheet widens into the journal and the whole bed stays visible. Full: the journal takes the whole screen with cards in two columns.</p>
+<div class="phones">{phone("7 · Landscape, half", landscape(), "land")}{phone("8 · Landscape, full", landscape_full(), "land")}</div>
 </body></html>"""
 
 (OUT / "journal.html").write_text(html, encoding="utf-8")

@@ -1,144 +1,152 @@
 #!/usr/bin/env python3
 """Renders the YAML recorded by demo-two-views.sh as a single HTML report.
 
-Usage: scripts/render-demo-report.py [in.yaml] [out.html]
+Usage: scripts/render-demo-report.py [--artifact] [in.yaml] [out.html]
        (defaults: build/demo/two-views.yaml and the same name with .html, under api/)
+       --artifact writes the page without the outer html/head/body, for publishing as an Artifact.
 
 The YAML is embedded as is; the page parses it with js-yaml and highlights bodies with highlight.js,
-both from a CDN, so nothing beyond the standard library is needed here. Opening the report needs a
-network connection for those libraries; the Preview tabs also need the app running at the recorded
-base address, for the page's stylesheet.
+both from cdnjs, so nothing beyond the standard library is needed here (the highlighting colors are
+inline). Screenshots recorded in the YAML are referenced by their relative path, so keep the
+screenshots/ folder beside the report.
 """
 import base64
 import pathlib
 import sys
 
 here = pathlib.Path(__file__).resolve().parent
-source = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else here.parent / "build/demo/two-views.yaml"
-target = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else source.with_suffix(".html")
+args = [a for a in sys.argv[1:] if not a.startswith("--")]
+source = pathlib.Path(args[0]) if args else here.parent / "build/demo/two-views.yaml"
+target = pathlib.Path(args[1]) if len(args) > 1 else source.with_suffix(".html")
 
 data = base64.b64encode(source.read_bytes()).decode("ascii")
 
-PAGE = r"""<!doctype html>
-<html lang="en" data-theme="auto">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>One address, two views</title>
+HEAD = r"""<title>One Address, Two Views</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link id="hl-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-<link id="hl-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" disabled>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <style>
+/* Layout: a step list on the left; each step shows the agent's and the browser's answers side by
+   side, with a phone screenshot of what a person sees at that address. Garden palette from the app. */
 :root {
-  --bg: #0f1d14; --panel: #15281c; --panel-2: #1b3324; --ink: #eef3e9; --muted: #9fb39a; --rule: #2a4433;
-  --agent: #4fc3d9; --agent-bg: rgba(79,195,217,.12); --browser: #e07ad6; --browser-bg: rgba(224,122,214,.12);
-  --ok: #6fcf7f; --bad: #ff7b6b; --warn: #f2c14e; --code: #0b1610; --chip: #223b2b;
+  --bg: #f6f2e8; --panel: #fffdf8; --panel-2: #f1ecdf; --ink: #1f2a1d; --muted: #5d5e4e; --rule: #e1d9c6;
+  --agent: #0b6f83; --agent-bg: #dcefef; --browser: #93307f; --browser-bg: #f4e3ee;
+  --ok: #2c7a37; --bad: #a8291f; --chip: #ebe4d3; --code: #faf7f0; --leaf: #2f6b34;
+  --hl-key: #0b6f83; --hl-str: #2c7a37; --hl-num: #9a5b00; --hl-tag: #93307f; --hl-attr: #6b4f1d; --hl-dim: #8a8a78;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
-:root[data-theme="light"] {
-  --bg: #f6f2e8; --panel: #ffffff; --panel-2: #f4efe4; --ink: #1f2a1d; --muted: #5b5b4d; --rule: #e0d9c8;
-  --agent: #0b7f95; --agent-bg: rgba(11,127,149,.08); --browser: #a3329a; --browser-bg: rgba(163,50,154,.08);
-  --ok: #2f7d3a; --bad: #b3261e; --warn: #9a6b00; --code: #fbf9f4; --chip: #ece6d6;
-}
-@media (prefers-color-scheme: light) {
-  :root[data-theme="auto"] {
-    --bg: #f6f2e8; --panel: #ffffff; --panel-2: #f4efe4; --ink: #1f2a1d; --muted: #5b5b4d; --rule: #e0d9c8;
-    --agent: #0b7f95; --agent-bg: rgba(11,127,149,.08); --browser: #a3329a; --browser-bg: rgba(163,50,154,.08);
-    --ok: #2f7d3a; --bad: #b3261e; --warn: #9a6b00; --code: #fbf9f4; --chip: #ece6d6;
-  }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1d14; --panel: #15281c; --panel-2: #1a3123; --ink: #eef3e9; --muted: #a2b59d; --rule: #2a4433;
+  --agent: #5cc8dc; --agent-bg: #143a40; --browser: #e58ad9; --browser-bg: #3a1d37;
+  --ok: #7fd48c; --bad: #ff8a7a; --chip: #223b2b; --code: #0c1811; --leaf: #7fd48c;
+  --hl-key: #5cc8dc; --hl-str: #9fe0a8; --hl-num: #f2c14e; --hl-tag: #e58ad9; --hl-attr: #e8c58a; --hl-dim: #7c8f78;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0f1d14; --panel: #15281c; --panel-2: #1a3123; --ink: #eef3e9; --muted: #a2b59d; --rule: #2a4433;
+  --agent: #5cc8dc; --agent-bg: #143a40; --browser: #e58ad9; --browser-bg: #3a1d37;
+  --ok: #7fd48c; --bad: #ff8a7a; --chip: #223b2b; --code: #0c1811; --leaf: #7fd48c;
+  --hl-key: #5cc8dc; --hl-str: #9fe0a8; --hl-num: #f2c14e; --hl-tag: #e58ad9; --hl-attr: #e8c58a; --hl-dim: #7c8f78;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 Inter, system-ui, sans-serif; }
-code, pre, .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12.5px; }
-a { color: inherit; }
-header.top { padding: 40px 24px 24px; max-width: 1500px; margin: 0 auto; display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; align-items: end; }
-header.top h1 { margin: 0; font-size: 34px; letter-spacing: -.02em; }
-header.top p { margin: 6px 0 0; color: var(--muted); max-width: 760px; }
-.meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
-.chip { background: var(--chip); border-radius: 999px; padding: 3px 10px; font-size: 12px; white-space: nowrap; }
-.legend { display: flex; gap: 10px; align-items: center; }
-.who { font-weight: 800; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 9px; border-radius: 6px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); padding-inline: 16px; }
+code, pre, .mono { font-family: var(--mono); font-size: 12.5px; }
+header.top { max-width: 1480px; margin: 0 auto; padding-block: 40px 28px; display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; align-items: end; }
+header.top > div { min-width: 0; max-width: 820px; }
+.eyebrow { font: 600 12px var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--leaf); margin: 0 0 6px; }
+header.top h1 { margin: 0; font: 800 clamp(30px, 5vw, 52px)/1.02 var(--display); letter-spacing: -.02em; text-wrap: balance; }
+header.top p.lede { margin: 12px 0 0; color: var(--muted); max-width: 66ch; }
+.meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 16px; }
+.chip { background: var(--chip); border-radius: 999px; padding: 2px 10px; font-size: 12px; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.who { font: 600 11px var(--body); letter-spacing: .1em; text-transform: uppercase; padding: 3px 9px; border-radius: 6px; }
 .who.agent { color: var(--agent); background: var(--agent-bg); }
 .who.browser { color: var(--browser); background: var(--browser-bg); }
-button.theme { border: 1px solid var(--rule); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 6px 14px; cursor: pointer; font: inherit; }
-.layout { max-width: 1500px; margin: 0 auto; padding: 0 24px 80px; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; }
-nav.toc { position: sticky; top: 16px; align-self: start; display: grid; gap: 2px; }
-nav.toc a { text-decoration: none; color: var(--muted); padding: 6px 10px; border-radius: 8px; font-size: 13px; }
+.same { color: var(--ok); font-weight: 600; white-space: nowrap; font-size: 12px; }
+button.theme { border: 1px solid var(--rule); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 7px 14px; cursor: pointer; font: inherit; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--leaf); outline-offset: 2px; }
+.layout { max-width: 1480px; margin: 0 auto; padding-block: 0 80px; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 28px; }
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); align-self: start; display: grid; gap: 2px; }
+nav.toc a { text-decoration: none; color: var(--muted); padding: 6px 10px; border-radius: 8px; font-size: 13px; display: flex; gap: 8px; }
+nav.toc a span { font-variant-numeric: tabular-nums; color: var(--leaf); min-width: 1.4em; }
 nav.toc a:hover { background: var(--panel); color: var(--ink); }
-section.step { margin-bottom: 40px; scroll-margin-top: 16px; }
-section.step h2 { margin: 0; font-size: 21px; }
-section.step .note { color: var(--muted); margin: 4px 0 14px; }
-.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 16px; }
-.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; min-width: 0; }
-.card.agent { border-top: 3px solid var(--agent); }
-.card.browser { border-top: 3px solid var(--browser); }
-.card-head { padding: 12px 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--rule); }
-.method { font-weight: 700; }
-.path { word-break: break-all; }
-.status { margin-left: auto; font-weight: 800; padding: 2px 9px; border-radius: 6px; }
-.status.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
-.status.bad { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+section.step { margin-bottom: 48px; scroll-margin-top: 16px; }
+section.step h2 { margin: 0; font: 600 23px/1.2 var(--display); text-wrap: balance; }
+section.step .note { color: var(--muted); margin: 4px 0 16px; max-width: 70ch; }
+.step-body { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 18px; align-items: start; }
+.step-body.no-shot { grid-template-columns: minmax(0, 1fr); }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: 16px; min-width: 0; }
+figure.shot { margin: 0; position: sticky; top: 16px; }
+figure.shot .phone { border: 8px solid var(--ink); border-radius: 28px; overflow: hidden; background: var(--panel); }
+figure.shot img { display: block; width: 100%; height: auto; max-width: 100%; }
+figure.shot figcaption { font-size: 12px; color: var(--muted); margin-top: 8px; }
+figure.shot figcaption code { word-break: break-all; }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; min-width: 0; }
+.card.agent { box-shadow: inset 0 3px 0 var(--agent); }
+.card.browser { box-shadow: inset 0 3px 0 var(--browser); }
+.card-head { padding: 12px 14px 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--rule); }
+.method { font-weight: 500; }
+.path { word-break: break-all; min-width: 0; }
+.status { margin-left: auto; font: 600 13px var(--mono); padding: 2px 8px; border-radius: 6px; }
+.status.ok { color: var(--ok); background: var(--chip); }
+.status.bad { color: var(--bad); background: var(--chip); }
 .subhead { padding: 6px 14px; display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); background: var(--panel-2); }
-.tabs { display: flex; gap: 4px; padding: 8px 10px 0; }
+.tabs { display: flex; gap: 4px; padding: 8px 10px 0; flex-wrap: wrap; }
 .tabs button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 8px 8px 0 0; cursor: pointer; }
 .tabs button.on { color: var(--ink); background: var(--panel-2); }
-.pane { display: none; padding: 12px 14px 14px; background: var(--panel-2); }
+.pane { display: none; padding: 12px 14px 14px; background: var(--panel-2); min-width: 0; }
 .pane.on { display: block; }
-.pane pre { margin: 0; max-height: 460px; overflow: auto; border-radius: 10px; }
-.pane pre code.hljs { background: var(--code); border-radius: 10px; padding: 12px; }
+.pane pre, .request pre { margin: 0; max-height: 440px; overflow: auto; border-radius: 8px; background: var(--code); border: 1px solid var(--rule); }
+.pane pre code, .request pre code { display: block; padding: 12px; color: var(--ink); white-space: pre; }
+.table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 td, th { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--rule); vertical-align: top; }
-th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
 td.rel { font-weight: 600; white-space: nowrap; }
-.same { color: var(--ok); font-weight: 800; white-space: nowrap; font-size: 12px; }
+td.mono { word-break: break-all; }
 .group { margin-bottom: 12px; }
-.group h4 { margin: 0 0 6px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
-.facts { display: flex; flex-wrap: wrap; gap: 6px; }
-.facts .chip b { font-weight: 700; }
-.taps { display: flex; flex-wrap: wrap; gap: 5px; }
-.taps .chip.match { outline: 1px solid var(--ok); }
-.problem { border-left: 3px solid var(--bad); padding: 8px 12px; background: color-mix(in srgb, var(--bad) 10%, transparent); border-radius: 6px; }
-.request { padding: 10px 14px; border-bottom: 1px solid var(--rule); }
-.request pre { margin: 6px 0 0; }
-iframe.preview { width: 100%; height: 520px; border: 1px solid var(--rule); border-radius: 10px; background: white; }
-.hint { color: var(--muted); font-size: 12px; margin: 0 0 8px; }
-@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { display: none; } .pair { grid-template-columns: 1fr; } }
+.group h4 { margin: 0 0 6px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-weight: 600; }
+.facts, .taps { display: flex; flex-wrap: wrap; gap: 5px; }
+.taps .chip.match { box-shadow: inset 0 0 0 1px var(--ok); }
+.problem { border-left: 3px solid var(--bad); padding: 8px 12px; background: var(--panel); border-radius: 6px; }
+.request { padding: 10px 14px; border-bottom: 1px solid var(--rule); display: grid; gap: 6px; }
+.hljs-attr { color: var(--hl-key); } .hljs-string { color: var(--hl-str); } .hljs-number, .hljs-literal { color: var(--hl-num); }
+.hljs-tag, .hljs-name { color: var(--hl-tag); } .hljs-attribute { color: var(--hl-attr); } .hljs-comment, .hljs-meta, .hljs-punctuation { color: var(--hl-dim); }
+.hljs-keyword, .hljs-section { color: var(--hl-tag); }
+@media (max-width: 1100px) { .step-body { grid-template-columns: minmax(0, 1fr); } figure.shot { position: static; max-width: 300px; } }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } nav.toc { display: none; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
-</head>
-<body>
-<header class="top">
+"""
+
+BODY = r"""<header class="top">
   <div>
-    <h1 id="title">One address, two views</h1>
-    <p>Every address asked twice: once as an <span class="who agent">agent</span> getting HAL Schema Forms,
-      once as a <span class="who browser">browser</span> getting the page or an htmx partial.
-      A <span class="same">✓ same</span> marks a form or move the other view offers at the same address.</p>
+    <p class="eyebrow">StarbornAG · content negotiation</p>
+    <h1>One address, two views</h1>
+    <p class="lede">Each address in the garden was asked twice: once as an <span class="who agent">agent</span> that
+      reads HAL Schema Forms, and once as a <span class="who browser">browser</span> that gets the page or an htmx
+      partial. <span class="same">✓ same</span> marks a move or a form that the other view offers at the same address.
+      Each step also shows a phone screenshot of the page at that moment.</p>
     <div class="meta" id="meta"></div>
   </div>
-  <button class="theme" id="theme">◐ Theme</button>
+  <button class="theme" id="theme" type="button">Switch light / dark</button>
 </header>
 <div class="layout">
-  <nav class="toc" id="toc"></nav>
+  <nav class="toc" id="toc" aria-label="Steps"></nav>
   <main id="steps"></main>
 </div>
 <script id="data" type="application/octet-stream">__DATA__</script>
 <script>
 (function () {
   const root = document.documentElement;
-  const syncHighlightTheme = () => {
-    const light = root.dataset.theme === 'light' ||
-      (root.dataset.theme === 'auto' && matchMedia('(prefers-color-scheme: light)').matches);
-    document.getElementById('hl-light').disabled = !light;
-    document.getElementById('hl-dark').disabled = light;
-  };
   document.getElementById('theme').onclick = () => {
-    const light = root.dataset.theme === 'light' ||
-      (root.dataset.theme === 'auto' && matchMedia('(prefers-color-scheme: light)').matches);
-    root.dataset.theme = light ? 'dark' : 'light';
-    syncHighlightTheme();
+    const dark = root.dataset.theme === 'dark' ||
+      (!root.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+    root.dataset.theme = dark ? 'light' : 'dark';
   };
-  syncHighlightTheme();
 
   const bytes = Uint8Array.from(atob(document.getElementById('data').textContent.trim()), c => c.charCodeAt(0));
   const report = jsyaml.load(new TextDecoder().decode(bytes));
@@ -196,21 +204,21 @@ iframe.preview { width: 100%; height: 520px; border: 1px solid var(--rule); bord
     const parts = [];
     if (hal.facts.length) parts.push(`<div class="group"><h4>About</h4><div class="facts">${
       hal.facts.map(([k, v]) => `<span class="chip"><b>${esc(k)}</b> ${esc(v)}</span>`).join('')}</div></div>`);
-    if (hal.links.length) parts.push(`<div class="group"><h4>Links</h4><table><tr><th>rel</th><th>href</th><th></th></tr>${
+    if (hal.links.length) parts.push(`<div class="group"><h4>Links</h4><div class="table-wrap"><table><tr><th>rel</th><th>href</th><th></th></tr>${
       hal.links.map(l => `<tr><td class="rel">${esc(l.rel)}</td><td class="mono">${esc(l.href)}</td><td>${
-        other && otherTaps.has(same(l.href)) ? '<span class="same">✓ same</span>' : ''}</td></tr>`).join('')}</table></div>`);
-    if (hal.forms.length) parts.push(`<div class="group"><h4>Forms</h4><table><tr><th>form</th><th>posts to</th><th>needs</th><th></th></tr>${
+        other && otherTaps.has(same(l.href)) ? '<span class="same">✓ same</span>' : ''}</td></tr>`).join('')}</table></div></div>`);
+    if (hal.forms.length) parts.push(`<div class="group"><h4>Forms</h4><div class="table-wrap"><table><tr><th>form</th><th>posts to</th><th>needs</th><th></th></tr>${
       hal.forms.map(f => `<tr><td class="rel">${esc(f.id)}</td><td class="mono">${esc(f.method)} ${esc(f.target)}${
         f.at ? ` <span class="chip">at ${esc(f.at)}</span>` : ''}</td><td>${esc(f.needs.join(', ') || '—')}${
         f.choices.length ? `<br><span class="mono">${esc(f.choices.join('  '))}</span>` : ''}</td><td>${
-        other && otherTargets.has(same(f.target)) ? '<span class="same">✓ same</span>' : ''}</td></tr>`).join('')}</table></div>`);
+        other && otherTargets.has(same(f.target)) ? '<span class="same">✓ same</span>' : ''}</td></tr>`).join('')}</table></div></div>`);
     for (const [kind, items] of Object.entries(hal.embedded).filter(([, items]) => items.length)) {
-      parts.push(`<div class="group"><h4>Embedded ${esc(kind)}</h4><table>${items.map(i => i.type
+      parts.push(`<div class="group"><h4>Embedded ${esc(kind)}</h4><div class="table-wrap"><table>${items.map(i => i.type
         ? `<tr><td class="rel">${esc(i.type)}</td><td class="mono">${esc(i.cells.join(' '))}</td><td>${esc(new Date(i.started).toLocaleTimeString())}</td></tr>`
-        : `<tr><td class="rel">${esc(i.name)}</td><td>${i.rows} × ${i.columns}</td><td class="mono">${esc(short(i._links.self.href))}</td></tr>`).join('')}</table></div>`);
+        : `<tr><td class="rel">${esc(i.name)}</td><td>${i.rows} × ${i.columns}</td><td class="mono">${esc(short(i._links.self.href))}</td></tr>`).join('')}</table></div></div>`);
     }
-    if (Array.isArray(hal.doc.lines) && hal.doc.lines.length) parts.push(`<div class="group"><h4>Lines</h4><table>${
-      hal.doc.lines.map(l => `<tr><td class="rel">${esc(l.line)}</td><td>${esc(l.commands.map(c => `${c.type} ${c.cells.join(' ')}`).join(' · ') || '—')}</td></tr>`).join('')}</table></div>`);
+    if (Array.isArray(hal.doc.lines) && hal.doc.lines.length) parts.push(`<div class="group"><h4>Lines</h4><div class="table-wrap"><table>${
+      hal.doc.lines.map(l => `<tr><td class="rel">${esc(l.line)}</td><td>${esc(l.commands.map(c => `${c.type} ${c.cells.join(' ')}`).join(' · ') || '—')}</td></tr>`).join('')}</table></div></div>`);
     return parts.join('');
   }
 
@@ -222,13 +230,13 @@ iframe.preview { width: 100%; height: 520px; border: 1px solid var(--rule); bord
       page.title ? `<span class="chip"><b>title</b> ${esc(page.title)}</span>` : ''}${
       page.meta ? `<span class="chip"><b>meta</b> ${esc(page.meta)}</span>` : ''}</div></div>`];
     if (page.message) parts.push(`<div class="problem">${esc(page.message)}</div>`);
-    if (page.beds.length) parts.push(`<div class="group"><h4>Beds to pick</h4><table>${
-      page.beds.map(b => `<tr><td class="rel">${esc(b.name)}</td><td class="mono">${esc(b.href)}</td></tr>`).join('')}</table></div>`);
+    if (page.beds.length) parts.push(`<div class="group"><h4>Beds to pick</h4><div class="table-wrap"><table>${
+      page.beds.map(b => `<tr><td class="rel">${esc(b.name)}</td><td class="mono">${esc(b.href)}</td></tr>`).join('')}</table></div></div>`);
     if (page.taps.length) parts.push(`<div class="group"><h4>Places to tap (${page.taps.length})</h4><div class="taps">${
       page.taps.map(t => `<span class="chip mono${links.has(same(t)) ? ' match' : ''}">${esc(t.includes('/focus/') ? t.split('/focus/')[1] : t)}</span>`).join('')}</div></div>`);
-    if (page.buttons.length) parts.push(`<div class="group"><h4>Care buttons</h4><table><tr><th>button</th><th>posts to</th><th>asks</th><th></th></tr>${
+    if (page.buttons.length) parts.push(`<div class="group"><h4>Care buttons</h4><div class="table-wrap"><table><tr><th>button</th><th>posts to</th><th>asks</th><th></th></tr>${
       page.buttons.map(b => `<tr><td class="rel">${esc(b.action)}</td><td class="mono">POST ${esc(b.target)}</td><td>${esc(b.asks.join(', ') || '—')}</td><td>${
-        hal && forms.has(same(b.target)) ? '<span class="same">✓ same</span>' : ''}</td></tr>`).join('')}</table></div>`);
+        hal && forms.has(same(b.target)) ? '<span class="same">✓ same</span>' : ''}</td></tr>`).join('')}</table></div></div>`);
     return parts.join('');
   }
 
@@ -266,21 +274,19 @@ iframe.preview { width: 100%; height: 520px; border: 1px solid var(--rule); bord
     if (summaryHtml) add('Summary', summaryHtml);
     add('Body', code(r.body, type.includes('json') ? 'json' : type.includes('html') ? 'xml' : 'plaintext'));
     add('Headers', code(Object.entries(r.headers).map(([k, v]) => `${k}: ${v}`).join('\n'), 'http'));
-    if (type.includes('html')) {
-      const wrap = el(`<div><p class="hint">Rendered with the app's stylesheet from ${esc(report.base)} (the app must be running).</p></div>`);
-      const frame = el('<iframe class="preview" sandbox=""></iframe>');
-      frame.srcdoc = (r.body.trim().startsWith('<html') ? r.body : `<link rel="stylesheet" href="/styles.css"><body>${r.body}</body>`)
-        .replace(/<head>/i, `<head><base href="${report.base}/">`).replace(/^<link/, `<base href="${report.base}/"><link`);
-      wrap.appendChild(frame); add('Preview', wrap);
-    }
     return node;
   }
 
   const toc = document.getElementById('toc'), steps = document.getElementById('steps');
   report.steps.forEach((step, i) => {
     const id = 'step-' + (i + 1);
-    toc.appendChild(el(`<a href="#${id}">${esc(step.title)}</a>`));
-    const section = el(`<section class="step" id="${id}"><h2>${esc(step.title)}</h2><p class="note">${esc(step.note)}</p><div class="pair"></div></section>`);
+    const [number, ...words] = step.title.split(' ');
+    toc.appendChild(el(`<a href="#${id}"><span>${esc(number.replace('.', ''))}</span>${esc(words.join(' '))}</a>`));
+    const shot = step.screenshot;
+    const section = el(`<section class="step" id="${id}"><h2>${esc(step.title)}</h2><p class="note">${esc(step.note)}</p>
+      <div class="step-body${shot ? '' : ' no-shot'}"><div class="pair"></div>${shot ? `<figure class="shot">
+        <div class="phone"><img src="${esc(shot.file)}" alt="The bed page at ${esc(short(shot.of))}, as a phone shows it" loading="lazy" width="500" height="900"></div>
+        <figcaption>What a person sees at <code>${esc(short(shot.of))}</code> at this point.</figcaption></figure>` : ''}</div></section>`);
     const read = step.exchanges.map(x => {
       const type = contentType(x.response);
       if (type === 'application/problem+json') return { problem: JSON.parse(x.response.body) };
@@ -302,9 +308,13 @@ iframe.preview { width: 100%; height: 520px; border: 1px solid var(--rule); bord
   });
 })();
 </script>
-</body>
-</html>
 """
 
-target.write_text(PAGE.replace("__DATA__", data), encoding="utf-8")
+artifact = "--artifact" in sys.argv
+page = HEAD + BODY.replace("__DATA__", data)
+if not artifact:
+    page = "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n" \
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n" \
+        + HEAD + "</head>\n<body>\n" + BODY.replace("__DATA__", data) + "</body>\n</html>\n"
+target.write_text(page, encoding="utf-8")
 print(f"Wrote {target}")

@@ -7,7 +7,9 @@
 #        (defaults: http://localhost:8080 and build/demo/two-views.yaml under api/)
 # Then:  scripts/render-demo-report.py      to turn the YAML into an HTML report.
 #
-# Needs curl, python3 and uuidgen. Each run prepares a new bed, so it can be run again and again.
+# Needs curl, python3 and uuidgen; with Google Chrome installed it also takes a phone-size screenshot
+# of the HTML view at each step's address, as it looks at that moment, into screenshots/ beside the
+# YAML. Each run prepares a new bed, so it can be run again and again.
 set -u
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -22,8 +24,35 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 : > "$work/exchanges.jsonl"
 
-title=""; note=""
-step() { title=$1; note=${2:-}; printf '%s\n' "$title" >&2; }
+title=""; note=""; number=0
+step() { title=$1; note=${2:-}; number=$((number + 1)); printf '%s\n' "$title" >&2; }
+
+chrome="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+command -v google-chrome >/dev/null && chrome=$(command -v google-chrome)
+shots="$(dirname "$out")/screenshots"
+rm -rf "$shots"; mkdir -p "$shots"
+: > "$work/shots.jsonl"
+
+# shoot PATH: what a person sees at PATH right now, as the step's screenshot (skipped without Chrome).
+shoot() {
+  [ -x "$chrome" ] || return 0
+  local file; file=$(printf 'step-%02d' "$number")
+  # The page keeps an event stream open, so Chrome never finishes on its own: stop it once the
+  # screenshot is written (or after 30 seconds).
+  "$chrome" --headless=new --disable-gpu --hide-scrollbars --timeout=4000 --window-size=500,900 \
+    --user-data-dir="$work/chrome" --screenshot="$work/$file.png" "$base$1" >/dev/null 2>&1 &
+  local pid=$! waited=0
+  while [ ! -s "$work/$file.png" ] && [ $waited -lt 300 ] && kill -0 $pid 2>/dev/null; do
+    sleep 0.1; waited=$((waited + 1))
+  done
+  sleep 0.3; kill $pid 2>/dev/null; wait $pid 2>/dev/null
+  [ -f "$work/$file.png" ] || return 0
+  sips -s format jpeg -s formatOptions 82 "$work/$file.png" --out "$shots/$file.jpg" >/dev/null 2>&1 ||
+    cp "$work/$file.png" "$shots/$file.png"
+  local saved; saved=$(ls "$shots/$file".* | head -1)
+  python3 -c 'import json,sys; print(json.dumps({"step": sys.argv[1], "screenshot": "screenshots/" + sys.argv[2], "of": sys.argv[3]}))' \
+    "$title" "$(basename "$saved")" "$1" >> "$work/shots.jsonl"
+}
 
 # ask WHO METHOD PATH [-H header]... [--json BODY | --form name=value...]
 # WHO is "agent" or "browser"; an htmx request is a browser with -H 'HX-Request: true'.
@@ -91,6 +120,11 @@ for line in open(sys.argv[2], encoding="utf-8"):
     if not steps or steps[-1]["title"] != title:
         steps.append({"title": title, "note": note, "exchanges": []})
     steps[-1]["exchanges"].append(exchange)
+for line in open(sys.argv[3], encoding="utf-8"):
+    shot = json.loads(line)
+    for step in steps:
+        if step["title"] == shot["step"]:
+            step["screenshot"] = {"file": shot["screenshot"], "of": shot["of"]}
 
 def scalar(value, indent):
     if value is None: return "null"
@@ -127,37 +161,46 @@ PY
 step "1. The front door" "One address to start from. The agent gets a link to the beds; the browser gets the list."
 ask agent GET /
 ask browser GET /
+shoot /
 
 step "2. The beds, and the form to prepare one" "Every bed links to its own address, and a form says how to prepare a new one."
 ask agent GET /beds
+shoot /beds
 
 step "3. The agent fills the prepare-bed form" "$name, 4 rows × 6 columns, posted as the form describes."
 ask agent POST /api/beds \
   --json "{\"bedId\":\"$bed\",\"name\":\"$name\",\"dimensions\":{\"rows\":4,\"columns\":6},\"cellBlockSize\":1}"
+shoot "/beds/$bed/journal?focus=bed&by=cell&size=half"
 
 step "4. The new bed: the same address, two views" "The agent's forms and the browser's care buttons post to the same addresses."
 ask agent GET "/beds/$bed"
 ask browser GET "/beds/$bed"
+shoot "/beds/$bed"
 
 step "5. Stepping onto cell B2" "Eight moves and a zoom-out for the agent; the same places to tap for the browser."
 ask agent GET "/beds/$bed/focus/cell/B2"
 ask browser GET "/beds/$bed/focus/cell/B2" -H 'HX-Request: true'
+shoot "/beds/$bed/focus/cell/B2"
 
 step "6. The agent plants a tomato at B2" "JSON posted to B2's own plant address; the focus comes back, now offering harvest."
 ask agent POST "/beds/$bed/focus/cell/B2/plant" --json '{"plantType":"tomato","plantCultivar":"Dark Galaxy"}'
+shoot "/beds/$bed/focus/cell/B2"
 
 step "7. The browser plants lettuce at B3" "Form fields posted from the sheet to the same kind of address; the view comes back."
 ask browser POST "/beds/$bed/focus/cell/B3/plant" -H 'HX-Request: true' \
   --form 'plantType=lettuce' --form 'plantCultivar=Paris Island'
+shoot "/beds/$bed/focus/cell/B3"
 
 step "8. The agent follows B2's zoom-out link" "No address is built by hand: it comes from the zoom-out link."
 zoom_out=$(curl -s -H "Accept: $agent" "$base/beds/$bed/focus/cell/B2" |
   python3 -c 'import json,sys; print(json.load(sys.stdin)["_links"]["zoom-out"]["href"])')
 ask agent GET "$zoom_out"
+shoot "$zoom_out"
 
 step "9. Row B is watered, then seen by the browser" "The row's water form waters all six cells in one go."
 ask agent POST "/beds/$bed/focus/row/B/water" --json '{"volume":1.0}'
 ask browser GET "/beds/$bed/focus/row/B" -H 'HX-Request: true'
+shoot "/beds/$bed/focus/row/B"
 
 step "10. Planting B2 again" "The soil rules refuse: a 409 problem for the agent."
 ask agent POST "/beds/$bed/focus/cell/B2/plant" --json '{"plantType":"tomato","plantCultivar":"Dark Galaxy"}'
@@ -165,9 +208,10 @@ ask agent POST "/beds/$bed/focus/cell/B2/plant" --json '{"plantType":"tomato","p
 step "11. The journal" "Links to each way of reading it for the agent; the open journal for the browser."
 ask agent GET "/beds/$bed/journal?by=row"
 ask browser GET "/beds/$bed/journal?by=row&size=full"
+shoot "/beds/$bed/journal?by=row&size=full"
 
 meta=$(python3 -c 'import json,sys; print(json.dumps({"title": "One address, two views", "base": sys.argv[1], "bed": sys.argv[2], "bedName": sys.argv[3], "captured": sys.argv[4]}))' \
   "$base" "$bed" "$name" "$(date -u +%Y-%m-%dT%H:%M:%SZ)")
-python3 "$work/to_yaml.py" "$meta" "$work/exchanges.jsonl" > "$out"
+python3 "$work/to_yaml.py" "$meta" "$work/exchanges.jsonl" "$work/shots.jsonl" > "$out"
 echo "Recorded $(wc -l < "$work/exchanges.jsonl" | tr -d ' ') exchanges to $out" >&2
 echo "Render it with: $here/render-demo-report.py \"$out\"" >&2

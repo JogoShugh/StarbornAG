@@ -180,10 +180,41 @@ class HttpSteps(private val world: GardenWorld) {
 
     @Then("the cells with a recorded {string} in the response are {string}")
     fun theCellsWithARecordedActionAre(action: String, cells: String) {
-        val recorded = body["rows"].flatMapIndexed { r, row ->
-            row["cells"].mapIndexedNotNull { c, cell -> "${r + 1}:${c + 1}".takeIf { cell.hasRecorded(action) } }
+        // A bed answers with all its rows; a focus answers with its own cells, each named like "B2".
+        val recorded = if (body.has("rows")) {
+            body["rows"].flatMapIndexed { r, row ->
+                row["cells"].mapIndexedNotNull { c, cell -> "${r + 1}:${c + 1}".takeIf { cell.hasRecorded(action) } }
+            }
+        } else {
+            body["cells"].filter { it.hasRecorded(action) }.map { cell ->
+                val position = cell["position"].asText()
+                "${position[0] - 'A' + 1}:${position.drop(1)}"
+            }
         }
         assertThat(recorded.joinToString(" ")).isEqualTo(cells)
+    }
+
+    @Then("the response is {string}")
+    fun theResponseIs(mediaType: String) {
+        assertThat(response.headers().firstValue("Content-Type").orElse("").substringBefore(";")).isEqualTo(mediaType)
+    }
+
+    @Then("the response's most recent event is {string} at {string}")
+    fun theResponsesMostRecentEventIs(type: String, cells: String) {
+        val latest = body["_embedded"]["recent"][0]
+        assertThat(latest["type"].asText()).isEqualTo(type)
+        assertThat(latest["cells"].joinToString(" ") { it.asText() }).isEqualTo(cells)
+    }
+
+    @When("an agent posts {string} as JSON to the focus {string} of the bed {string}")
+    fun anAgentPostsAsJsonToTheFocus(action: String, focus: String, bed: String) {
+        val payload = mapOf("plantType" to "tomato", "plantCultivar" to "Dark Galaxy", "volume" to 1.0)
+        send(
+            HttpRequest.newBuilder(uri("/beds/${world.bedId(bed)}/focus/$focus/$action"))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/hal+json")
+                .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(payload)))
+        )
     }
 
     @Then("the response bed is named {string} with {int} rows of {int} cells")

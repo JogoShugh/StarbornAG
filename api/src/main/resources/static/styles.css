@@ -564,3 +564,13 @@ html body #skitt-ui {
 @media (orientation: landscape) {
     #view[data-journal="full"] .journal .cards { grid-template-columns: 1fr 1fr; }
 }
+
+/* ---------------------------------------------------------------- Front door */
+
+.front-door { max-width: 520px; margin: 0 auto; padding: 24px 16px; }
+.front-door h1 { margin: 0 0 16px; }
+.bed-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.bed-list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    background: var(--sheet); color: var(--sheet-ink); border-radius: 14px; padding: 14px 16px; }
+.bed-link { font-size: 20px; font-weight: 800; color: inherit; }
+.bed-size { font-size: 13px; color: var(--muted); }

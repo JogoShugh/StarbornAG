@@ -29,6 +29,59 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         assertThat(answer.statusCode()).isEqualTo(200)
     }
 
+    @When("a client asks for {string} accepting {string}")
+    fun aClientAsksForTheAddress(address: String, accept: String) {
+        answer = ask(address, accept)
+        assertThat(answer.statusCode()).isEqualTo(200)
+    }
+
+    @When("the client follows the answer's {string} link")
+    fun theClientFollowsTheAnswersLink(rel: String) =
+        aClientAsksForTheAddress(json["_links"][rel]["href"].asText(), "application/hal+json")
+
+    @Then("the answer links {string} to {string}")
+    fun theAnswerLinksTo(rel: String, href: String) {
+        assertThat(json["_links"][rel]["href"].asText()).isEqualTo(href)
+    }
+
+    @Then("the listed beds include:")
+    fun theListedBedsInclude(table: DataTable) {
+        val listed = json["_embedded"]["beds"].map { bed ->
+            mapOf("name" to bed["name"].asText(), "rows" to bed["rows"].asText(), "columns" to bed["columns"].asText())
+        }
+        assertThat(listed).containsAll(*table.asMaps().toTypedArray())
+    }
+
+    @Then("every listed bed links to its own address")
+    fun everyListedBedLinksToItsOwnAddress() {
+        json["_embedded"]["beds"].forEach { bed ->
+            assertThat(bed["_links"]["self"]["href"].asText()).isEqualTo("/beds/${bed["id"].asText()}")
+        }
+    }
+
+    @Then("the answer offers the form {string}")
+    fun theAnswerOffersTheForm(form: String) {
+        assertThat(json["_forms"].has(form)).isTrue()
+    }
+
+    @Then("the page links the beds {string} to their bed pages")
+    fun thePageLinksTheBeds(names: String) {
+        val links = Jsoup.parse(answer.body()).select("a.bed-link").associate { it.text() to it.attr("href") }
+        names.split(" ").forEach { name ->
+            assertThat(links[name]).isEqualTo("/beds/${world.bedId(name)}")
+        }
+    }
+
+    @Then("at {string} of the bed {string} the agent's forms and the page's care buttons post to the same addresses")
+    fun theAgentsFormsAndThePagesButtonsPostToTheSameAddresses(focus: String, bed: String) {
+        val address = "/beds/${world.bedId(bed)}/focus/$focus"
+        val html = Jsoup.parse(ask(address, "text/html").body())
+        val agent = jacksonObjectMapper().readTree(ask(address, "application/hal+json").body())
+        val buttons = html.select("#view .sheet form.care-action").map { it.attr("hx-post") }
+        val forms = agent["_forms"].map { it["_links"]["target"]["href"].asText() }
+        assertThat(buttons).isEqualTo(forms)
+    }
+
     @Then("the answer is {string}")
     fun theAnswerIs(mediaType: String) {
         assertThat(answer.headers().firstValue("Content-Type").orElse("").substringBefore(";")).isEqualTo(mediaType)

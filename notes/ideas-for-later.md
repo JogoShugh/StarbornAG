@@ -17,10 +17,15 @@ Newest first. Move an item out when it becomes a slice.
 
 ## Hypermedia and HEART + RISE
 
-- **Per-cell forms.** Today `_forms` exist only at bed level (slice 4c). Give each cell its own
-  forms, so an agent reading cell A1 sees exactly what A1 allows: for example `harvest-crop`
-  only on the cells growing that plant, and `plant-seedling` only on empty cells. Built from the
-  same `BedCell` predicates as the soil rules, like `possibleCare`.
+- **Retire the old `/api/beds/...` addresses.** Every bed, focus and journal now answers at
+  `/beds/...` in both views (HTML or HAL by `Accept`), and focus forms post to
+  `/beds/{id}/focus/{path}/{action}`. The `/api/...` reads, the bed-level command endpoints
+  (`/api/beds/{id}/plant` and so on), the bed-level `_forms` with a free-form location, and the
+  old `/api/beds/{id}/negotiable` experiment remain as before; fold them into the one tree (or
+  keep them as documented aliases) and point the bed resource's forms at the focus addresses.
+- **HTML that works without JavaScript.** Put a real `<form action method>` or `<a href>` under
+  every htmx control (progressive enhancement), so the page works with JavaScript off and a
+  browsing agent that only understands plain HTML can still navigate and tend the bed.
 - **ETag / If-Match (HEART L4).** Map a representation's `ETag` to stream versions and require
   `If-Match` on commands. `Repository.handle(id, expectedVersion)` already rejects stale versions
   with `WrongExpectedVersion`; map that to `412`, keep `409` for "not possible in this state"

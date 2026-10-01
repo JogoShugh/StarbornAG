@@ -13,6 +13,7 @@ import org.starbornag.api.domain.bed.Bed
 import org.starbornag.api.domain.bed.BedCell
 import org.starbornag.api.domain.bed.CareAction
 import org.starbornag.api.domain.bed.command.BedCommand.CellCommand
+import org.starbornag.api.domain.bed.command.BedCommand.PrepareBed
 import org.starbornag.api.domain.bed.possibleCare
 import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
@@ -48,9 +49,15 @@ object HalSchemaForms {
 
     /**
      * Forms in CareAction order, for the actions [cells] allow. With a [location], the forms act on
-     * exactly those cells: the location is fixed in each schema, as its const and default.
+     * exactly those cells: the location is fixed in each schema, as its const and default. Each form
+     * posts to [targetBase] followed by the action, such as ".../focus/row/B/water".
      */
-    fun forCells(bed: Bed, cells: List<BedCell>, location: String? = null): Map<String, HalForm> {
+    fun forCells(
+        bed: Bed,
+        cells: List<BedCell>,
+        location: String? = null,
+        targetBase: String = "/api/beds/${bed.id}"
+    ): Map<String, HalForm> {
         val possible = possibleCare(cells)
         return CareAction.entries.filter { it in possible.actions }.associate { action ->
             val spec = specs.getValue(action)
@@ -62,12 +69,25 @@ object HalSchemaForms {
             if (location != null) (schema.with("properties").get("location") as ObjectNode)
                 .put("const", location).put("default", location)
             spec.id to HalForm(
-                links = mapOf("target" to mapOf("href" to "/api/beds/${bed.id}/${spec.path}")),
+                links = mapOf("target" to mapOf("href" to "$targetBase/${spec.path}")),
                 method = "POST",
                 contentType = MediaType.APPLICATION_JSON_VALUE,
                 schema = schema
             )
         }
+    }
+
+    /** The form that prepares a new bed: its id, name and size are the client's to choose. */
+    fun prepareBed(): HalForm {
+        val schema = generator.generateSchema(PrepareBed::class.java)
+        schema.with("properties").set<ObjectNode>("bedId", text().put("format", "uuid"))
+        schema.putArray("required").apply { listOf("bedId", "name", "dimensions").forEach(::add) }
+        return HalForm(
+            links = mapOf("target" to mapOf("href" to "/api/beds")),
+            method = "POST",
+            contentType = MediaType.APPLICATION_JSON_VALUE,
+            schema = schema
+        )
     }
 
     /**

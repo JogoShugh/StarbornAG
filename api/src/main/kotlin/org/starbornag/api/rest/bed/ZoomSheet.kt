@@ -130,14 +130,15 @@ object ZoomSheet {
         div {
             classes = setOf("care-actions")
             resource.forms.values.forEach { careForm ->
-                val action = careForm.links.getValue("target").getValue("href").substringAfterLast("/")
+                val postTo = careForm.links.getValue("target").getValue("href")
+                val action = postTo.substringAfterLast("/")
                 val properties = careForm.schema.get("properties")
                 val fields = careForm.schema.get("required").map { it.asText() }.filter { it !in filledByThePage }
                 form {
                     classes = setOf("care-action")
                     attributes["data-action"] = action
                     hx {
-                        post = "/beds/${resource.bedId}/focus/${resource.path}/$action"
+                        post = postTo
                         target = BedPage.VIEW
                         swap = "outerHTML"
                     }

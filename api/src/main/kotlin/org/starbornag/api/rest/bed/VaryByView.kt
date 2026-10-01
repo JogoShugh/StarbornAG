@@ -17,7 +17,7 @@ class VaryByView : OncePerRequestFilter() {
     override fun shouldNotFilter(request: HttpServletRequest) = !request.requestURI.startsWith("/beds/")
 
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, chain: FilterChain) {
-        response.addHeader(HttpHeaders.VARY, "${HttpHeaders.ACCEPT}, ${BedPageController.HX_REQUEST}")
+        response.addHeader(HttpHeaders.VARY, "${HttpHeaders.ACCEPT}, ${Asking.HX_REQUEST}")
         chain.doFilter(request, response)
     }
 }

@@ -7,7 +7,7 @@ import org.starbornag.eventstore.Repository
 import java.util.*
 
 /** Use cases for beds. Each bed is one stream in the event store, identified by the bed id. */
-class Beds(eventStore: EventStore) {
+class Beds(private val eventStore: EventStore) {
     private val repository = Repository<Bed?, Bed.Event>(eventStore, Bed::class, { null }, Bed::evolve)
 
     /** @throws org.starbornag.api.domain.bed.BedAlreadyExists when the bed was prepared before. */
@@ -15,4 +15,7 @@ class Beds(eventStore: EventStore) {
         checkNotNull(repository.handle(command.bedId, decide = Bed.prepare(command)).state)
 
     suspend fun find(bedId: UUID): Bed? = repository.find(bedId)?.state
+
+    /** Every bed, in the order they were prepared. */
+    suspend fun all(): List<Bed> = eventStore.streamIds(Bed::class).mapNotNull { find(it) }
 }

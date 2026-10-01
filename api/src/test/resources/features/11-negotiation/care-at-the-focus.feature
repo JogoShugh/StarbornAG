@@ -31,6 +31,17 @@ Feature: Care is recorded at the focus's own address, by people and agents alike
     And the response is "application/hal+json"
     And the response's most recent event is "watered" at "B1 B2 B3 B4 B5 B6 B7 B8"
 
+  Scenario Outline: The cells an agent names are honoured where the form leaves them open, and only there
+    When an agent posts '{"plantType":"tomato","plantCultivar":"Dark Galaxy","location":"<cells>"}' to "<target>" of the bed "Mars"
+    Then the response status is 200
+    And the planted cells in the response are "<planted>"
+
+    Examples:
+      | target          | cells    | planted                        |
+      | focus/bed/plant | B1 to B3 | A1 A2 A3 B1 B2 B3              |
+      | focus/bed/plant | C4       | A1 A2 A3 C4                    |
+      | focus/cell/B2/plant | C1   | B2                             |
+
   Scenario: Care the soil rules refuse is a conflict for an agent
     When an agent posts "plant" as JSON to the focus "cell/A1" of the bed "Mars"
     Then the response status is 409

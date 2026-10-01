@@ -206,6 +206,13 @@ class HttpSteps(private val world: GardenWorld) {
         assertThat(recorded.joinToString(" ")).isEqualTo(cells)
     }
 
+    @Then("the planted cells in the response are {string}")
+    fun thePlantedCellsInTheResponseAre(cells: String) {
+        val planted = body["cells"].filter { it["planting"]["plantType"].asText().isNotEmpty() }
+            .map { it["position"].asText() }.sorted()
+        assertThat(planted.joinToString(" ")).isEqualTo(cells)
+    }
+
     @Then("the response is {string}")
     fun theResponseIs(mediaType: String) {
         assertThat(response.headers().firstValue("Content-Type").orElse("").substringBefore(";")).isEqualTo(mediaType)

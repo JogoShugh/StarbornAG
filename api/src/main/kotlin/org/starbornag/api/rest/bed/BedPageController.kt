@@ -96,8 +96,10 @@ class BedPageController(
         val path = pathOf(scope, ref)
         val focus = resources.focus(bedId, path)
         focus.requireFieldsOf(action, fields)
+        // A focus that fixes its cells (a cell, row or column) overrides whatever cells were sent; the
+        // whole bed leaves them open, so the cells the agent named are the ones cared for.
         val payload = mapOf("started" to Instant.now().toString()) + fields +
-            mapOf("bedId" to bedId.toString(), "location" to focus.location)
+            mapOf("bedId" to bedId.toString(), "location" to (focus.location ?: fields["location"]))
         bedCells.handle(bedCommandMapper.convertCommand(action, payload) as CellCommand)
         return hal(resources.focus(bedId, path))
     }

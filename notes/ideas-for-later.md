@@ -55,6 +55,17 @@ Newest first. Move an item out when it becomes a slice.
   transaction, would let it read one table. A command id in event metadata would make folding
   events back into commands exact instead of matching kind and start time.
 
+## Found by the agent runs (agentlog-2.md)
+
+- **Event names:** harvests read `bedHarvested` while the rest read `planted`, `watered`, `fertilized`,
+  `mulched`; make it `harvested` (with an upcaster for stored events).
+- **Water's default volume:** `water-cells` leaves `volume` optional and the server uses 1 liter, but the
+  description does not say so.
+- **The fixed `location` field's description** still says "Omit for the whole bed" on cells, rows and
+  columns, where it is fixed.
+- **Hops inside a row or column:** their `go-to-cell` covers only their own cells, so another cell needs a hop
+  out first. Consistent with the page; consider a `go-to-cell` for the whole bed everywhere.
+
 ## Bed journal
 
 - **Needs care.** Flag cells that look neglected, for example "dry 3 days" when a planted cell has

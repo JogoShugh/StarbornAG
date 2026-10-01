@@ -83,6 +83,13 @@ class HttpSteps(private val world: GardenWorld) {
         assertThat(offered.sorted()).isEqualTo(forms.split(" ").sorted())
     }
 
+    /** The forms that record care (POST); a focus also offers GET forms to move and refresh. */
+    @Then("the response's care forms are {string}")
+    fun theResponsesCareFormsAre(forms: String) {
+        val care = body["_forms"].fields().asSequence().filter { (_, form) -> form["method"].asText() == "POST" }
+        assertThat(care.map { it.key }.toList().sorted()).isEqualTo(forms.split(" ").sorted())
+    }
+
     @Then("the form {string} offers the plant types {string}")
     fun theFormOffersThePlantTypes(form: String, plantTypes: String) {
         val offered = body["_forms"]?.get(form)?.get("schema")?.get("properties")?.get("plantType")?.get("enum")

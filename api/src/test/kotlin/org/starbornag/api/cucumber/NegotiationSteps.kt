@@ -230,6 +230,12 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         assertThat(allowed.joinToString(" ")).isEqualTo(values)
     }
 
+    @Then("the form {string} lets {string} be at least {int}")
+    fun theFormLetsBeAtLeast(form: String, field: String, minimum: Int) {
+        val property = json["_forms"][form]["schema"]["properties"][field]
+        assertThat(property["type"].asText() to property["minimum"].asInt()).isEqualTo("integer" to minimum)
+    }
+
     @Then("the form {string} lets {string} run from {int} to {int}")
     fun theFormLetsRunFrom(form: String, field: String, first: Int, last: Int) {
         val property = json["_forms"][form]["schema"]["properties"][field]
@@ -285,9 +291,17 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         }.map { expand(target["href"].asText(), it) }
     }
 
-    /** RFC 6570 simple string expansion, which is all these templates use. */
+    /** RFC 6570 simple string expansion and form-style query expansion ({?a,b}), which these templates use. */
     private fun expand(template: String, variables: Map<String, String>): String =
-        Regex("\\{(\\w+)}").replace(template) { variables[it.groupValues[1]].orEmpty() }
+        Regex("\\{(\\??)([\\w,]+)}").replace(template) { match ->
+            val names = match.groupValues[2].split(",")
+            if (match.groupValues[1] == "?") {
+                names.filter { it in variables }.joinToString("&") { "$it=${variables.getValue(it)}" }
+                    .let { if (it.isEmpty()) "" else "?$it" }
+            } else {
+                names.joinToString(",") { variables[it].orEmpty() }
+            }
+        }
 
     /** One spelling per place: the bed is its whole-bed focus, and page-only journal state is dropped. */
     private fun place(href: String, bedAddress: String): String = href

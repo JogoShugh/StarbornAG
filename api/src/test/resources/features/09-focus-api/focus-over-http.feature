@@ -47,7 +47,7 @@ Feature: A focus as a hypermedia resource
   Scenario: The forms of a focus follow the state of the cells in focus
     Given a client has planted "tomato" at "B2" in the bed "Mars"
     When a client reads the focus "cell/B2" of the bed "Mars"
-    Then the response forms are "water-cells fertilize-cells mulch-cells harvest-crop"
+    Then the response's care forms are "water-cells fertilize-cells mulch-cells harvest-crop"
 
   Scenario Outline: A focus that is not part of the bed is not found
     When a client reads the focus "<focus>" of the bed "Mars"

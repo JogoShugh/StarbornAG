@@ -19,6 +19,7 @@ Feature: Going straight to a row, column or cell with GET forms
       | go-to-row    | /focus/row/{row}          | row        |
       | go-to-column | /focus/column/{column}    | column     |
       | go-to-cell   | /focus/cell/{row}{column} | row column |
+      | refresh      | /focus/bed{?recent}       | recent     |
     And the form "go-to-row" lets "row" be one of "A B C D"
     And the form "go-to-column" lets "column" run from 1 to 8
     And the form "go-to-cell" lets "row" be one of "A B C D"

@@ -92,7 +92,8 @@ object HalSchemaForms {
      * GET forms that go straight to a place inside [focus] (HAL Schema Forms: a templated target whose
      * fields fill the template). The schemas bound each field to the places that exist, so an agent
      * never builds an address itself: rows by letter (enum), columns by number (minimum to maximum).
-     * The whole bed offers rows, columns and cells; a row or a column only its own cells.
+     * The whole bed offers rows, columns and cells; a row or a column only its own cells. Every focus
+     * also offers "refresh", which reads it again with as many recent commands as the agent asks for.
      */
     fun goTo(bedId: UUID, focus: Focus, rows: Int, columns: Int): Map<String, HalForm> {
         val base = "/beds/$bedId/focus"
@@ -103,6 +104,11 @@ object HalSchemaForms {
             "$base/cell/{row}{column}", "Go to a cell",
             "row" to letterField(cellRows), "column" to numberField(cellColumns)
         )
+        val refresh = "refresh" to goForm(
+            "$base/${focus.path}{?recent}", "Refresh",
+            "recent" to JsonNodeFactory.instance.objectNode().put("type", "integer").put("minimum", 0)
+                .put("title", "Recent").put("description", "How many recent commands to embed; left out, 10")
+        ).also { form -> form.schema.remove("required") }
         return when (focus) {
             Focus.OnBed -> mapOf(
                 "go-to-row" to goForm("$base/row/{row}", "Go to a row", "row" to letterField(letters)),
@@ -113,7 +119,7 @@ object HalSchemaForms {
             )
             is Focus.OnRow, is Focus.OnColumn -> mapOf(cell)
             is Focus.OnCell -> emptyMap()
-        }
+        } + refresh
     }
 
     private fun goForm(target: String, title: String, vararg fields: Pair<String, ObjectNode>): HalForm {

@@ -70,6 +70,16 @@ Feature: One address, two views: the page for people, HAL Schema Forms for agent
       | ?recent=2  | 2     |
       | ?recent=0  | 0     |
 
+  Scenario: Agents learn how to ask for more or fewer recent events from a form, not from documentation
+    When a client asks for "Mars:/focus/row/A" accepting "application/hal+json"
+    Then the answer offers these GET forms:
+      | form       | target                    | fields     |
+      | go-to-cell | /focus/cell/{row}{column} | row column |
+      | refresh    | /focus/row/A{?recent}     | recent     |
+    And the form "refresh" lets "recent" be at least 0
+    When an agent fills the GET form "refresh" at "row/A" of the bed "Mars" with "recent=1"
+    Then 1 recent events are embedded
+
   Scenario Outline: Agents reach every way of reading the journal by following links
     When a client asks for "/journal?focus=<focus>" of the bed "Mars" accepting "application/hal+json"
     Then the answer links the journal folds "<folds>"

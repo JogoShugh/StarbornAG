@@ -19,9 +19,9 @@ Feature: Forms say what they are for
 
     Examples:
       | address             | titles                                                                    |
-      | Mars:/focus/cell/B2 | Plant a seedling, Water, Feed, Mulch                                      |
-      | Mars:/focus/cell/A1 | Water, Feed, Mulch, Harvest                                               |
-      | Mars:/focus/bed     | Plant a seedling, Water, Feed, Mulch, Harvest, Go to a row, Go to a column, Go to a cell |
+      | Mars:/focus/cell/B2 | Plant a seedling, Water, Feed, Mulch, Refresh                             |
+      | Mars:/focus/cell/A1 | Water, Feed, Mulch, Harvest, Refresh                                      |
+      | Mars:/focus/bed     | Plant a seedling, Water, Feed, Mulch, Harvest, Go to a row, Go to a column, Go to a cell, Refresh |
       | /beds               | Prepare a bed                                                             |
 
   Scenario Outline: Anything measured says its unit

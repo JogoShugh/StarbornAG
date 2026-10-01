@@ -175,7 +175,7 @@ object HalSchemaForms {
         schema.putArray("required").apply { listOf("name", "dimensions").forEach(::add) }
         FormWords.describe("prepare-bed", schema)
         return HalForm(
-            links = mapOf("target" to mapOf("href" to "/api/beds")),
+            links = mapOf("target" to mapOf("href" to "/beds")),
             method = "POST",
             contentType = MediaType.APPLICATION_JSON_VALUE,
             schema = schema

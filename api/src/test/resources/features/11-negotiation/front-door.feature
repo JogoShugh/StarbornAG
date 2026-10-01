@@ -25,6 +25,15 @@ Feature: One front door for people and agents
     And every listed bed links to its own address
     And the answer offers the form "prepare-bed"
 
+  Scenario: A bed prepared from the beds' form lives under /beds like every other
+    When a client asks for "/beds" accepting "application/hal+json"
+    Then the form "prepare-bed" in the answer posts to "/beds"
+    When an agent submits the form "prepare-bed" from the answer with '{"name":"Ceres","dimensions":{"rows":2,"columns":2}}'
+    Then the answer status is 201
+    And the answer's Location leads into "/beds/"
+    And every link of the answer leads into "/beds/"
+    And the bed at the answer's Location is named "Ceres"
+
   Scenario Outline: A browser at the front door gets the beds to pick from
     When a client asks for "<address>" accepting "text/html"
     Then the answer is "text/html"

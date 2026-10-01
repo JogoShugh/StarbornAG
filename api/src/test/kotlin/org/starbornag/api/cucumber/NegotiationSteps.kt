@@ -109,6 +109,18 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         )
     }
 
+    @Then("the form {string} in the answer posts to {string}")
+    fun theFormInTheAnswerPostsTo(form: String, target: String) {
+        val theForm = json["_forms"][form]
+        val submits = theForm["method"].asText() to theForm["_links"]["target"]["href"].asText()
+        assertThat(submits).isEqualTo("POST" to target)
+    }
+
+    @Then("the answer's Location leads into {string}")
+    fun theAnswersLocationLeadsInto(prefix: String) {
+        assertThat(answer.headers().firstValue("Location").orElse("").startsWith(prefix)).isTrue()
+    }
+
     @Then("the answer status is {int}")
     fun theAnswerStatusIs(status: Int) {
         assertThat(answer.statusCode()).isEqualTo(status)

@@ -19,10 +19,11 @@ Newest first. Move an item out when it becomes a slice.
 
 - **Retire the old `/api/beds/...` addresses.** Every bed, focus and journal now answers at
   `/beds/...` in both views (HTML or HAL by `Accept`), and focus forms post to
-  `/beds/{id}/focus/{path}/{action}`. The `/api/...` reads, the bed-level command endpoints
-  (`/api/beds/{id}/plant` and so on), the bed-level `_forms` with a free-form location, and the
-  old `/api/beds/{id}/negotiable` experiment remain as before; fold them into the one tree (or
-  keep them as documented aliases) and point the bed resource's forms at the focus addresses.
+  `/beds/{id}/focus/{path}/{action}`, and beds are prepared with `POST /beds`. The `/api/...`
+  reads, the bed-level command endpoints (`/api/beds/{id}/plant` and so on), `POST /api/beds`, the
+  bed-level `_forms` with a free-form location, and the old `/api/beds/{id}/negotiable` experiment
+  remain as before; fold them into the one tree (or keep them as documented aliases) and point the
+  bed resource's forms at the focus addresses.
 - **HTML that works without JavaScript.** Put a real `<form action method>` or `<a href>` under
   every htmx control (progressive enhancement), so the page works with JavaScript off and a
   browsing agent that only understands plain HTML can still navigate and tend the bed.

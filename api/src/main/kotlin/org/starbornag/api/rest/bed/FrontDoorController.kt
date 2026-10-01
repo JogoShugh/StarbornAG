@@ -18,11 +18,16 @@ import kotlinx.html.title
 import kotlinx.html.ul
 import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
+import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RestController
 import org.starbornag.api.application.bed.Beds
 import org.starbornag.api.domain.bed.Bed
+import org.starbornag.api.domain.bed.command.BedCommand.PrepareBed
+import java.net.URI
 import java.util.*
 
 /** The front door's HAL: where to go from here. */
@@ -49,7 +54,20 @@ data class BedsResource(
  * pick from, an agent gets HAL to follow from there.
  */
 @RestController
-class FrontDoorController(private val beds: Beds) {
+class FrontDoorController(private val beds: Beds, private val resources: BedResources) {
+
+    /**
+     * Prepares a bed from the prepare-bed form and answers with it, as its whole-bed focus, at its own
+     * address under /beds.
+     */
+    @PostMapping("/beds", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    suspend fun prepare(@RequestBody command: PrepareBed): ResponseEntity<FocusResource> {
+        val bed = beds.prepare(command)
+        return ResponseEntity.created(URI.create("/beds/${bed.id}"))
+            .contentType(Asking.HAL)
+            .header(HttpHeaders.LINK, BedResources.PROFILE_LINK)
+            .body(resources.focus(bed.id, "bed"))
+    }
 
     @GetMapping("/")
     suspend fun frontDoor(

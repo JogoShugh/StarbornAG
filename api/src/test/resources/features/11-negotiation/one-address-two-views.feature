@@ -30,6 +30,19 @@ Feature: One address, two views: the page for people, HAL Schema Forms for agent
       | /journal?by=row         | text/html                       | text/html            |
       | /journal?by=row         | application/hal+json            | application/hal+json |
 
+  Scenario Outline: HAL answers name their profile in the media type, and their forms the JSON Schema draft
+    When a client asks for "<address>" accepting "application/hal+json"
+    Then the answer's media type names the profile "https://github.com/jbadeau/hal-schema-forms"
+    And every form's schema declares "https://json-schema.org/draft/2019-09/schema"
+
+    Examples:
+      | address             |
+      | /                   |
+      | /beds               |
+      | Mars:/focus/bed     |
+      | Mars:/focus/cell/B2 |
+      | Mars:/journal       |
+
   Scenario Outline: A gardener and an agent at the same address are offered the same care and moves
     Then a gardener and an agent at "<focus>" of the bed "Mars" are offered the same care and moves
 

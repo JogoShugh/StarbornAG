@@ -120,6 +120,19 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         assertThat((json["name"] ?: json["bedName"]).asText()).isEqualTo(name)
     }
 
+    @Then("the answer's media type names the profile {string}")
+    fun theMediaTypeNamesTheProfile(profile: String) {
+        val header = answer.headers().firstValue("Content-Type").orElse("")
+        val type = org.springframework.http.MediaType.parseMediaType(header)
+        assertThat(type.getParameter("profile")?.trim('"')).isEqualTo(profile)
+    }
+
+    @Then("every form's schema declares {string}")
+    fun everyFormsSchemaDeclares(draft: String) {
+        val declared = json["_forms"]?.map { it["schema"]["\$schema"]?.asText() }.orEmpty()
+        declared.forEach { assertThat(it).isEqualTo(draft) }
+    }
+
     @Then("the forms are titled {string}")
     fun theFormsAreTitled(titles: String) {
         val named = json["_forms"].joinToString(", ") { it["schema"]["title"]?.asText() ?: "(untitled)" }

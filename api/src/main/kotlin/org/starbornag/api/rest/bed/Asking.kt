@@ -23,6 +23,8 @@ internal class Asking(accept: String?, htmx: String?, val recent: Int = FocusRes
 
         /** Plant and care icons are emoji: without a charset, browsers fall back to Latin-1. */
         val HTML = MediaType(MediaType.TEXT_HTML, Charsets.UTF_8)
-        val HAL = MediaType("application", "hal+json")
+
+        /** HAL with the HAL Schema Forms profile named in the media type, as the spec shows it. */
+        val HAL = MediaType("application", "hal+json", mapOf("profile" to "\"${HalSchemaForms.PROFILE}\""))
     }
 }

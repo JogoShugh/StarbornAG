@@ -54,8 +54,11 @@ object HalSchemaForms {
         CareAction.HARVEST to FormSpec("harvest-crop", "harvest", CellCommand.Harvest::class)
     )
 
+    /** The JSON Schema draft the HAL Schema Forms spec names for form schemas. */
+    private const val DRAFT = "https://json-schema.org/draft/2019-09/schema"
+
     private val generator = SchemaGenerator(
-        SchemaGeneratorConfigBuilder(SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON).with(JacksonModule()).build()
+        SchemaGeneratorConfigBuilder(SchemaVersion.DRAFT_2019_09, OptionPreset.PLAIN_JSON).with(JacksonModule()).build()
     )
 
     /**
@@ -124,7 +127,7 @@ object HalSchemaForms {
 
     private fun goForm(target: String, title: String, vararg fields: Pair<String, ObjectNode>): HalForm {
         val schema = JsonNodeFactory.instance.objectNode()
-            .put("\$schema", "https://json-schema.org/draft/2020-12/schema")
+            .put("\$schema", DRAFT)
             .put("type", "object").put("title", title)
         val properties = schema.putObject("properties")
         fields.forEach { (name, field) -> properties.set<ObjectNode>(name, field) }

@@ -55,6 +55,17 @@ Newest first. Move an item out when it becomes a slice.
   not been watered for longer than its plant wants. Needs a rule per plant or one global window
   (the season windows above), so it waits on that decision. Shows as a flag on cell cards and a
   "⚠ Needs care" filter chip.
+- **Plant and cultivar care profiles.** Metadata per plant type, refined per cultivar, that drives
+  the care rules instead of one global window: how often it wants water and how much, feeding
+  interval and fertilizer, mulch, days to maturity, harvest window, spacing. "Needs care" and
+  recommendations read the profile of whatever grows in the cell (a Dark Galaxy tomato may differ
+  from tomatoes in general).
+  - **Longer-term goal: learning from the bed's own history.** Correlate the care each bed, and
+    each cell, actually received (from its event history) with the yields recorded in harvest
+    events (quantity, weight), so recommendations adapt to that bed and even that square foot of
+    soil rather than only the generic profile. Needs harvest weights and quantities captured
+    consistently, enough seasons of history, and care to keep the correlation honest (weather,
+    soil and cultivar differences).
 - **Care filter chips** (💧 🌿 🪵 🧺) on the journal, from the mockups.
 - **Drag gesture** on the handle (collapsed, half, full); taps work today.
 

@@ -7,7 +7,7 @@
 #        (defaults: http://localhost:8080 and build/demo/two-views.yaml under api/)
 # Then:  scripts/render-demo-report.py      to turn the YAML into an HTML report.
 #
-# Needs curl, python3 and uuidgen; with Google Chrome installed it also takes a phone-size screenshot
+# Needs curl and python3; with Google Chrome installed it also takes a phone-size screenshot
 # of the HTML view at each step's address, as it looks at that moment, into screenshots/ beside the
 # YAML. Each run prepares a new bed, so it can be run again and again.
 set -u
@@ -18,7 +18,7 @@ out="${2:-$(cd "$here/.." && pwd)/build/demo/two-views.yaml}"
 mkdir -p "$(dirname "$out")"
 agent='application/hal+json'
 browser='text/html'
-bed=$(uuidgen | tr 'A-Z' 'a-z')
+bed=""
 name="Demo $(date +%H:%M:%S)"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -158,6 +158,24 @@ print("# One address, two views: every exchange, as recorded by scripts/demo-two
 print("\n".join(emit({**meta, "steps": steps})))
 PY
 
+# What the agent reads from the answer it just got: a value by Python expression over the JSON body.
+last() { python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(eval(sys.argv[2]))' "$work/body" "$1"; }
+
+# Fills a templated form target (RFC 6570: {a}{b} and {?x}) with name=value pairs, as HAL Schema Forms says.
+fill() {
+  python3 - "$@" <<'PY'
+import re, sys
+template, values = sys.argv[1], dict(v.split("=", 1) for v in sys.argv[2:])
+def expand(m):
+    names = m.group(2).split(",")
+    if m.group(1) == "?":
+        pairs = [f"{n}={values[n]}" for n in names if n in values]
+        return "?" + "&".join(pairs) if pairs else ""
+    return "".join(values.get(n, "") for n in names)
+print(re.sub(r"\{(\??)([\w,]+)\}", expand, template))
+PY
+}
+
 step "1. The front door" "One address to start from. The agent gets a link to the beds; the browser gets the list."
 ask agent GET /
 ask browser GET /
@@ -165,50 +183,66 @@ shoot /
 
 step "2. The beds, and the form to prepare one" "Every bed links to its own address, and a form says how to prepare a new one."
 ask agent GET /beds
+prepare=$(last 'd["_forms"]["prepare-bed"]["_links"]["target"]["href"]')
 shoot /beds
 
-step "3. The agent fills the prepare-bed form" "$name, 4 rows × 6 columns, posted as the form describes."
-ask agent POST /api/beds \
-  --json "{\"bedId\":\"$bed\",\"name\":\"$name\",\"dimensions\":{\"rows\":4,\"columns\":6},\"cellBlockSize\":1}"
-shoot "/beds/$bed/journal?focus=bed&by=cell&size=half"
+step "3. The agent fills the prepare-bed form" "$name, 4 rows × 6 columns: only a name and a size; the server chooses the id and says where the bed lives."
+ask agent POST "$prepare" --json "{\"name\":\"$name\",\"dimensions\":{\"rows\":4,\"columns\":6}}"
+home=$(grep -i '^location:' "$work/headers" | tr -d '\r' | cut -d' ' -f2)
+bed=${home##*/}
+shoot "$home"
 
-step "4. The new bed: the same address, two views" "The agent's forms and the browser's care buttons post to the same addresses."
-ask agent GET "/beds/$bed"
-ask browser GET "/beds/$bed"
-shoot "/beds/$bed"
+step "4. The new bed: the same address, two views" "The agent's care forms and the browser's buttons post to the same addresses; GET forms go straight to any row, column or cell."
+ask agent GET "$home"
+go_to_cell=$(last 'd["_forms"]["go-to-cell"]["_links"]["target"]["href"]')
+ask browser GET "$home"
+shoot "$home"
 
-step "5. Stepping onto cell B2" "Eight moves and a zoom-out for the agent; the same places to tap for the browser."
-ask agent GET "/beds/$bed/focus/cell/B2"
-ask browser GET "/beds/$bed/focus/cell/B2" -H 'HX-Request: true'
-shoot "/beds/$bed/focus/cell/B2"
+step "5. Straight to cell B2" "The agent fills the bed's go-to-cell form (row B, column 2) instead of building an address; the browser taps B2."
+b2=$(fill "$go_to_cell" row=B column=2)
+ask agent GET "$b2"
+plant_b2=$(last 'd["_forms"]["plant-seedling"]["_links"]["target"]["href"]')
+ask browser GET "$b2" -H 'HX-Request: true'
+shoot "$b2"
 
-step "6. The agent plants a tomato at B2" "JSON posted to B2's own plant address; the focus comes back, now offering harvest."
-ask agent POST "/beds/$bed/focus/cell/B2/plant" --json '{"plantType":"tomato","plantCultivar":"Dark Galaxy"}'
-shoot "/beds/$bed/focus/cell/B2"
+step "6. The agent plants a tomato at B2" "JSON posted to the target of B2's plant-seedling form; the focus comes back, now offering harvest instead."
+ask agent POST "$plant_b2" --json '{"plantType":"tomato","plantCultivar":"Dark Galaxy"}'
+shoot "$b2"
 
 step "7. The browser plants lettuce at B3" "Form fields posted from the sheet to the same kind of address; the view comes back."
-ask browser POST "/beds/$bed/focus/cell/B3/plant" -H 'HX-Request: true' \
+ask browser POST "$home/focus/cell/B3/plant" -H 'HX-Request: true' \
   --form 'plantType=lettuce' --form 'plantCultivar=Paris Island'
-shoot "/beds/$bed/focus/cell/B3"
+shoot "$home/focus/cell/B3"
 
 step "8. The agent follows B2's zoom-out link" "No address is built by hand: it comes from the zoom-out link."
-zoom_out=$(curl -s -H "Accept: $agent" "$base/beds/$bed/focus/cell/B2" |
+row_b=$(curl -s -H "Accept: $agent" "$base$b2" |
   python3 -c 'import json,sys; print(json.load(sys.stdin)["_links"]["zoom-out"]["href"])')
-ask agent GET "$zoom_out"
-shoot "$zoom_out"
+ask agent GET "$row_b"
+water_row=$(last 'd["_forms"]["water-cells"]["_links"]["target"]["href"]')
+shoot "$row_b"
 
-step "9. Row B is watered, then seen by the browser" "The row's water form waters all six cells in one go."
-ask agent POST "/beds/$bed/focus/row/B/water" --json '{"volume":1.0}'
-ask browser GET "/beds/$bed/focus/row/B" -H 'HX-Request: true'
-shoot "/beds/$bed/focus/row/B"
+step "9. Row B is watered, then seen by the browser" "The row's water form waters all six cells in one go; no time sent, so the server records the moment it arrives."
+ask agent POST "$water_row" --json '{"volume":1.0}'
+cell_in_row=$(last 'd["_forms"]["go-to-cell"]["_links"]["target"]["href"]')
+ask browser GET "$row_b" -H 'HX-Request: true'
+shoot "$row_b"
 
-step "10. Planting B2 again" "The soil rules refuse: a 409 problem for the agent."
-ask agent POST "/beds/$bed/focus/cell/B2/plant" --json '{"plantType":"tomato","plantCultivar":"Dark Galaxy"}'
+step "10. A form sent incomplete" "The agent goes to B4 with Row B's go-to-cell form and sends plant-seedling without a cultivar: a 400 vnd.error names the missing field."
+b4=$(fill "$cell_in_row" row=B column=4)
+ask agent GET "$b4"
+ask agent POST "$(last 'd["_forms"]["plant-seedling"]["_links"]["target"]["href"]')" --json '{"plantType":"tomato"}'
 
-step "11. The journal" "Links to each way of reading it for the agent; the open journal for the browser."
-ask agent GET "/beds/$bed/journal?by=row"
-ask browser GET "/beds/$bed/journal?by=row&size=full"
-shoot "/beds/$bed/journal?by=row&size=full"
+step "11. Planting B2 again, from a stale form" "B2 no longer offers plant-seedling; posting the old form anyway gets a 409 vnd.error in the garden's words, linking back to B2."
+ask agent POST "$plant_b2" --json '{"plantType":"tomato","plantCultivar":"Dark Galaxy"}'
+
+step "12. Refresh with fewer recent events" "B2's refresh form says how to ask for a different number of recent events: here 1."
+ask agent GET "$b2"
+ask agent GET "$(fill "$(last 'd["_forms"]["refresh"]["_links"]["target"]["href"]')" recent=1)"
+
+step "13. The journal" "Links to each way of reading it for the agent; the open journal for the browser."
+ask agent GET "$home/journal?by=row"
+ask browser GET "$home/journal?by=row&size=full"
+shoot "$home/journal?by=row&size=full"
 
 meta=$(python3 -c 'import json,sys; print(json.dumps({"title": "One address, two views", "base": sys.argv[1], "bed": sys.argv[2], "bedName": sys.argv[3], "captured": sys.argv[4]}))' \
   "$base" "$bed" "$name" "$(date -u +%Y-%m-%dT%H:%M:%SZ)")

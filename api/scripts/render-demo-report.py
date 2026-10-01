@@ -176,7 +176,9 @@ BODY = r"""<header class="top">
       const props = f.schema.properties || {};
       const needs = (f.schema.required || []).filter(p => !['bedId', 'started', 'location'].includes(p));
       const choices = needs.filter(p => props[p] && props[p].enum).map(p => `${p} ∈ {${props[p].enum.join(', ')}}`);
-      return { id, method: f.method, target: short(f._links.target.href), at: (props.location || {}).const, needs, choices };
+      const places = f.method === 'GET' && f._links.target.templated ? expansions(f).map(short) : [];
+      return { id, method: f.method, target: short(f._links.target.href), at: (props.location || {}).const, needs, choices,
+               title: f.schema.title, places };
     });
     const facts = Object.entries(doc).filter(([k, v]) => !k.startsWith('_') && v !== null && typeof v !== 'object' && !['bedId', 'id'].includes(k));
     return { links, forms, facts, embedded: doc._embedded || {}, doc };
@@ -198,6 +200,29 @@ BODY = r"""<header class="top">
              meta: text_('.sheet-meta')[0], message: text_('.sheet-message')[0], beds };
   }
 
+  /** A vnd.error (or an older problem+json): the message, what it is about, and each field to fix. */
+  function problemSummary(p) {
+    const about = p._links && p._links.about ? short(p._links.about.href) : null;
+    const fields = (p._embedded && p._embedded.errors) || [];
+    return `<div class="problem"><b>${esc(p.message || p.title)}</b>${p.detail ? ': ' + esc(p.detail) : ''}</div>` +
+      (about ? `<div class="group"><h4>About</h4><span class="chip mono">${esc(about)}</span></div>` : '') +
+      (fields.length ? `<div class="group"><h4>Fields to fix</h4><div class="table-wrap"><table>${
+        fields.map(f => `<tr><td class="mono rel">${esc(f.path)}</td><td>${esc(f.message)}</td></tr>`).join('')}</table></div></div>` : '');
+  }
+
+  /** Every address a bounded GET form leads to, filling its template from each field's enum or range. */
+  function expansions(form) {
+    const props = form.schema.properties || {};
+    const choices = Object.entries(props).map(([name, p]) => [name,
+      p.enum ? p.enum.map(String) : (p.minimum !== undefined && p.maximum !== undefined)
+        ? Array.from({ length: p.maximum - p.minimum + 1 }, (_, i) => String(p.minimum + i)) : null]);
+    if (choices.some(([, v]) => !v)) return [];
+    let sets = [{}];
+    for (const [name, values] of choices) sets = sets.flatMap(set => values.map(v => ({ ...set, [name]: v })));
+    return sets.map(set => form._links.target.href.replace(/\{(\??)([\w,]+)\}/g, (_, q, names) =>
+      q ? '' : names.split(',').map(n => set[n] || '').join('')));
+  }
+
   function halSummary(hal, other) {
     const otherTargets = new Set((other?.buttons || []).map(b => same(b.target)));
     const otherTaps = new Set((other?.taps || []).map(same));
@@ -211,7 +236,8 @@ BODY = r"""<header class="top">
       hal.forms.map(f => `<tr><td class="rel">${esc(f.id)}</td><td class="mono">${esc(f.method)} ${esc(f.target)}${
         f.at ? ` <span class="chip">at ${esc(f.at)}</span>` : ''}</td><td>${esc(f.needs.join(', ') || '—')}${
         f.choices.length ? `<br><span class="mono">${esc(f.choices.join('  '))}</span>` : ''}</td><td>${
-        other && otherTargets.has(same(f.target)) ? '<span class="same">✓ same</span>' : ''}</td></tr>`).join('')}</table></div></div>`);
+        other && (otherTargets.has(same(f.target)) || (f.places.length && f.places.every(p => otherTaps.has(same(p)))))
+          ? `<span class="same">✓ same${f.places.length ? ` (${f.places.length} places)` : ''}</span>` : ''}</td></tr>`).join('')}</table></div></div>`);
     for (const [kind, items] of Object.entries(hal.embedded).filter(([, items]) => items.length)) {
       parts.push(`<div class="group"><h4>Embedded ${esc(kind)}</h4><div class="table-wrap"><table>${items.map(i => i.type
         ? `<tr><td class="rel">${esc(i.type)}</td><td class="mono">${esc(i.cells.join(' '))}</td><td>${esc(new Date(i.started).toLocaleTimeString())}</td></tr>`
@@ -289,7 +315,7 @@ BODY = r"""<header class="top">
         <figcaption>What a person sees at <code>${esc(short(shot.of))}</code> at this point.</figcaption></figure>` : ''}</div></section>`);
     const read = step.exchanges.map(x => {
       const type = contentType(x.response);
-      if (type === 'application/problem+json') return { problem: JSON.parse(x.response.body) };
+      if (type === 'application/problem+json' || type === 'application/vnd.error+json') return { problem: JSON.parse(x.response.body) };
       if (type.includes('json')) return { hal: readHal(JSON.parse(x.response.body)) };
       if (type.includes('html')) return { page: readHtml(x.response.body) };
       return {};
@@ -298,8 +324,7 @@ BODY = r"""<header class="top">
     const browserRead = read.find((r, j) => r.page && step.exchanges[j].who === 'browser');
     step.exchanges.forEach((x, j) => {
       const r = read[j];
-      const summary = r.problem
-        ? `<div class="problem"><b>${esc(r.problem.title)}</b> (${r.problem.status}): ${esc(r.problem.detail)}</div>`
+      const summary = r.problem ? problemSummary(r.problem)
         : r.hal ? halSummary(r.hal, browserRead && browserRead.page)
         : r.page ? htmlSummary(r.page, agentRead && agentRead.hal) : '';
       section.querySelector('.pair').appendChild(card(x, summary));

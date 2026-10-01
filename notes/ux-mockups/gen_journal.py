@@ -51,6 +51,8 @@ figcaption { color: #eee; font-size: 15px; margin-bottom: 8px; font-weight: 600;
   box-shadow: inset 0 0 10px rgba(0,0,0,.6); }
 .t .l { position: absolute; top: 2px; left: 4px; font-size: 9px; font-weight: 700; opacity: .7; }
 .t .e { position: absolute; bottom: 1px; right: 3px; font-size: 8px; }
+.mini { border-radius: 4px; background: #3a2a1e; text-align: center; overflow: hidden; }
+.mini-lbl { color: #b8c7b0; font-weight: 800; font-size: 9px; display: flex; align-items: center; justify-content: center; }
 .lbl { color: #b8c7b0; font-weight: 800; font-size: 12px; display: flex; align-items: center; justify-content: center; }
 .sheet { background: #f4efe4; color: #22301f; border-radius: 22px 22px 0 0; padding: 8px 14px 14px; display: flex; flex-direction: column; min-height: 0; }
 .handle { margin: 0 auto 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: #6d6a5e; font-size: 11px; font-weight: 700; }
@@ -87,12 +89,25 @@ def tile(cell, size, dim=False):
             f'<span class="l">{cell}</span>{p[0] if p else ""}<span class="e">{icons}</span></div>')
 
 
-def mini_bed(size):
-    """The whole bed, turned for portrait, as a tiny map without labels: plants only."""
-    cells = "".join(
-        f'<div class="t" style="width:{size}px;height:{size}px;font-size:{int(size * .7)}px;border-radius:3px">'
-        f'{(planted(f"{r}{c}") or ("",))[0]}</div>' for c in COLS for r in ROWS)
-    return f'<div class="grid" style="gap:2px;grid-template-columns:repeat(5,{size}px)">{cells}</div>'
+def mini_bed(size, focus=None, portrait=True):
+    """A small whole-bed map for while the journal is open: plants only, no labels or care icons in
+    the tiles, so nothing crowds. Portrait turns it (letters across); [focus] ("row C") is outlined,
+    the rest dimmed."""
+    lines, across = (COLS, ROWS) if portrait else (ROWS, COLS)
+    head = '<div></div>' + "".join(f'<div class="mini-lbl">{a}</div>' for a in across)
+    body = []
+    for line in lines:
+        body.append(f'<div class="mini-lbl">{line}</div>')
+        for a in across:
+            r, c = (a, line) if portrait else (line, a)
+            p = planted(f"{r}{c}")
+            inside = focus is None or focus == f"row {r}" or focus == f"column {c}"
+            style = f"width:{size}px;height:{size}px;font-size:{int(size * .62)}px;line-height:{size}px"
+            if not inside: style += ";opacity:.3"
+            if focus and inside: style += ";outline:2px solid #f2c14e;outline-offset:-1px"
+            body.append(f'<div class="mini" style="{style}">{p[0] if p else ""}</div>')
+    columns = f"14px repeat({len(across)},{size}px)"
+    return f'<div class="grid" style="gap:3px;grid-template-columns:{columns}">{head}{"".join(body)}</div>'
 
 
 def portrait_bed(size):
@@ -194,7 +209,7 @@ def collapsed():
 
 
 def journal(tab, body, mini=True):
-    mini_map = f'<div class="map" style="flex:0 0 120px">{mini_bed(10)}</div>' if mini else ""
+    mini_map = f'<div class="map" style="flex:0 0 236px">{mini_bed(17)}</div>' if mini else ""
     return (top("<b>Earth</b> · journal") + mini_map +
             '<div class="sheet" style="flex:1">' + handle("▾ Back to the bed") +
             '<div style="display:flex;justify-content:space-between;align-items:baseline"><div class="h">Earth journal</div><div class="m">all 50 cells</div></div>'
@@ -220,15 +235,14 @@ def landscape():
             '<div style="display:flex;justify-content:space-between;align-items:baseline"><div class="h">Earth journal</div><div class="m">✕ close</div></div>'
             + tabs("Cells") + CHIPS + '<div class="list">' + "".join(cell_card(c) for c in ["A3", "C5", "D2", "B1"]) + "</div></div>")
     left = ('<div style="flex:1;display:flex;flex-direction:column">' + top("<b>Earth</b> · journal") +
-            f'<div class="map">{land_bed(34)}</div></div>')
+            f'<div class="map">{mini_bed(30, portrait=False)}</div></div>')
     return left + side
 
 
 def scoped():
     body = (tabs("Cells").replace("Rows", "—").replace("Columns", "—") +
             '<div class="list">' + "".join(cell_card(f"C{c}") for c in range(1, 8)) + "</div>")
-    strip_map = '<div class="map" style="flex:0 0 120px"><div class="grid" style="grid-template-columns:repeat(10,32px)">' + \
-                "".join(tile(f"C{c}", 32) for c in COLS) + "</div></div>"
+    strip_map = f'<div class="map" style="flex:0 0 236px">{mini_bed(17, focus="row C")}</div>'
     return (top("<u>Earth</u> › <b>Row C</b> · journal") + strip_map + '<div class="sheet" style="flex:1">' + handle("▾ Back to Row C") +
             '<div style="display:flex;justify-content:space-between;align-items:baseline"><div class="h">Row C journal</div><div class="m">10 cells</div></div>'
             + body + "</div>")

@@ -32,7 +32,7 @@ sealed class BedCommand : BedId {
         data class Fertilize(
             override val bedId: UUID,
             override val action : String = "fertilize",
-            val started: Date,
+            val started: Date = Date.from(Instant.now()),
             val volume: Double,
             val fertilizer: String,
             override val location: CellsSelection? = null
@@ -41,7 +41,7 @@ sealed class BedCommand : BedId {
         data class Mulch(
             override val bedId: UUID,
             override val action : String = "mulch",
-            val started: Date,
+            val started: Date = Date.from(Instant.now()),
             val volume: Double,
             val material: String,
             override val location: CellsSelection? = null
@@ -50,7 +50,7 @@ sealed class BedCommand : BedId {
         data class Water(
             override val bedId: UUID,
             override val action : String = "water",
-            val started: Date,
+            val started: Date = Date.from(Instant.now()),
             val volume: Double = 1.0,
             override val location: CellsSelection? = null
         ) : CellCommand()
@@ -58,7 +58,7 @@ sealed class BedCommand : BedId {
         data class Harvest(
             override val bedId: UUID,
             override val action : String = "harvest",
-            val started: Date,
+            val started: Date = Date.from(Instant.now()),
             val plantType: String,
             val plantCultivar: String,
             val quantity: Int? = null,

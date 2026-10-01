@@ -35,9 +35,9 @@ Feature: Bed affordances as HAL Schema Forms
     Examples:
       | form            | link      | required                                |
       | plant-seedling  | plant     | bedId plantType plantCultivar           |
-      | water-cells     | water     | bedId started                           |
-      | fertilize-cells | fertilize | bedId started volume fertilizer         |
-      | mulch-cells     | mulch     | bedId started volume material           |
+      | water-cells     | water     | bedId                                   |
+      | fertilize-cells | fertilize | bedId volume fertilizer                 |
+      | mulch-cells     | mulch     | bedId volume material                   |
 
   Scenario: A client that only follows the form can water the bed
     Given a client has prepared the bed "Mars" with 2 rows, 4 columns and cell block size 1

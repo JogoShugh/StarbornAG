@@ -1,5 +1,7 @@
 package org.starbornag.api.rest.bed
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
@@ -12,19 +14,31 @@ import org.springframework.http.MediaType
 import org.starbornag.api.domain.bed.Bed
 import org.starbornag.api.domain.bed.BedCell
 import org.starbornag.api.domain.bed.CareAction
+import org.starbornag.api.domain.bed.Focus
+import org.starbornag.api.domain.bed.rowLetter
 import org.starbornag.api.domain.bed.command.BedCommand.CellCommand
 import org.starbornag.api.domain.bed.command.BedCommand.PrepareBed
 import org.starbornag.api.domain.bed.possibleCare
+import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
 
 /** One form of a HAL Schema Forms document (https://github.com/jbadeau/hal-schema-forms). */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class HalForm(
-    @get:JsonProperty("_links") val links: Map<String, Map<String, String>>,
+    @get:JsonProperty("_links") val links: Map<String, Map<String, Any>>,
     val method: String,
-    val contentType: String,
+    /** Required for PATCH, POST and PUT; a GET form has none. */
+    val contentType: String?,
     val schema: ObjectNode
-)
+) {
+    /** Where the form is submitted (a URI template when the target is templated). */
+    @get:JsonIgnore
+    val target: String get() = links.getValue("target").getValue("href").toString()
+
+    @get:JsonIgnore
+    val isCare: Boolean get() = method == "POST"
+}
 
 /** Builds a bed's `_forms`: one form per care action that is possible right now. */
 object HalSchemaForms {
@@ -76,6 +90,56 @@ object HalSchemaForms {
             )
         }
     }
+
+    /**
+     * GET forms that go straight to a place inside [focus] (HAL Schema Forms: a templated target whose
+     * fields fill the template). The schemas bound each field to the places that exist, so an agent
+     * never builds an address itself: rows by letter (enum), columns by number (minimum to maximum).
+     * The whole bed offers rows, columns and cells; a row or a column only its own cells.
+     */
+    fun goTo(bedId: UUID, focus: Focus, rows: Int, columns: Int): Map<String, HalForm> {
+        val base = "/beds/$bedId/focus"
+        val letters = (1..rows).map { rowLetter(it) }
+        val cellRows = if (focus is Focus.OnRow) listOf(rowLetter(focus.row)) else letters
+        val cellColumns = if (focus is Focus.OnColumn) focus.column..focus.column else 1..columns
+        val cell = "go-to-cell" to goForm(
+            "$base/cell/{row}{column}", "Go to a cell",
+            "row" to letterField(cellRows), "column" to numberField(cellColumns)
+        )
+        return when (focus) {
+            Focus.OnBed -> mapOf(
+                "go-to-row" to goForm("$base/row/{row}", "Go to a row", "row" to letterField(letters)),
+                "go-to-column" to goForm(
+                    "$base/column/{column}", "Go to a column", "column" to numberField(1..columns)
+                ),
+                cell
+            )
+            is Focus.OnRow, is Focus.OnColumn -> mapOf(cell)
+            is Focus.OnCell -> emptyMap()
+        }
+    }
+
+    private fun goForm(target: String, title: String, vararg fields: Pair<String, ObjectNode>): HalForm {
+        val schema = JsonNodeFactory.instance.objectNode()
+            .put("\$schema", "https://json-schema.org/draft/2020-12/schema")
+            .put("type", "object").put("title", title)
+        val properties = schema.putObject("properties")
+        fields.forEach { (name, field) -> properties.set<ObjectNode>(name, field) }
+        schema.putArray("required").apply { fields.forEach { add(it.first) } }
+        return HalForm(
+            links = mapOf("target" to mapOf("href" to target, "templated" to true)),
+            method = "GET",
+            contentType = null,
+            schema = schema
+        )
+    }
+
+    private fun letterField(letters: List<String>) = text().put("title", "Row").also { field ->
+        field.putArray("enum").apply { letters.forEach(::add) }
+    }
+
+    private fun numberField(range: IntRange) = JsonNodeFactory.instance.objectNode()
+        .put("type", "integer").put("title", "Column").put("minimum", range.first).put("maximum", range.last)
 
     /** The form that prepares a new bed: its id, name and size are the client's to choose. */
     fun prepareBed(): HalForm {

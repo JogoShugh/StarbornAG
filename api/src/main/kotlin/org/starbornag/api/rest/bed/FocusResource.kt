@@ -45,7 +45,7 @@ data class FocusResource(
      * @throws FormIncomplete naming the missing fields.
      */
     fun requireFieldsOf(action: String, fields: Map<String, Any?>) {
-        val form = forms.values.firstOrNull { it.links.getValue("target").getValue("href").endsWith("/$action") }
+        val form = forms.values.firstOrNull { it.target.endsWith("/$action") }
             ?: return
         val missing = form.schema.get("required").map { it.asText() }
             .filter { it !in FILLED_BY_THE_SERVER && fields[it] == null }
@@ -94,7 +94,7 @@ data class FocusResource(
                 links = links,
                 forms = HalSchemaForms.forCells(
                     bed, cells.map { it.state }, focus.spokenLocation(rows, columns), "$base/focus/${focus.path}"
-                ),
+                ) + HalSchemaForms.goTo(bed.id, focus, rows, columns),
                 embedded = mapOf("recent" to recentCommands(positions, cells, recent))
             )
         }

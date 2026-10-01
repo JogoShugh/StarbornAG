@@ -78,7 +78,7 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         val html = Jsoup.parse(ask(address, "text/html").body())
         val agent = jacksonObjectMapper().readTree(ask(address, "application/hal+json").body())
         val buttons = html.select("#view .sheet form.care-action").map { it.attr("hx-post") }
-        val forms = agent["_forms"].map { it["_links"]["target"]["href"].asText() }
+        val forms = careForms(agent).map { it["_links"]["target"]["href"].asText() }
         assertThat(buttons).isEqualTo(forms)
     }
 
@@ -104,7 +104,7 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         val agent = jacksonObjectMapper().readTree(ask(address, "application/hal+json").body())
 
         val buttons = html.select("#view .sheet form.care-action").map { it.attr("data-action") }
-        val forms = agent["_forms"].map { it["_links"]["target"]["href"].asText().substringAfterLast("/") }
+        val forms = careForms(agent).map { it["_links"]["target"]["href"].asText().substringAfterLast("/") }
         assertThat(buttons).isEqualTo(forms)
 
         val taps = html.select("#view [hx-get]").map { it.attr("hx-get").substringAfter("/focus/", "") }.toSet()
@@ -149,6 +149,92 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         val hrefs = json.findValues("href").map { it.asText() }
         hrefs.forEach { assertThat(it).doesNotContain("$parameter=") }
     }
+
+    @Then("the answer offers these GET forms:")
+    fun theAnswerOffersTheseGetForms(table: DataTable) {
+        val base = json["_links"]["bed"]["href"].asText()
+        val offered = json["_forms"].fields().asSequence()
+            .filter { (_, form) -> form["method"].asText() == "GET" }
+            .map { (id, form) ->
+                mapOf(
+                    "form" to id,
+                    "target" to form["_links"]["target"]["href"].asText().removePrefix(base),
+                    "fields" to form["schema"]["properties"].fieldNames().asSequence().joinToString(" ")
+                )
+            }.toList()
+        assertThat(offered).isEqualTo(table.asMaps())
+    }
+
+    @Then("the form {string} lets {string} be one of {string}")
+    fun theFormLetsBeOneOf(form: String, field: String, values: String) {
+        val allowed = json["_forms"][form]["schema"]["properties"][field]["enum"].map { it.asText() }
+        assertThat(allowed.joinToString(" ")).isEqualTo(values)
+    }
+
+    @Then("the form {string} lets {string} run from {int} to {int}")
+    fun theFormLetsRunFrom(form: String, field: String, first: Int, last: Int) {
+        val property = json["_forms"][form]["schema"]["properties"][field]
+        assertThat(property["minimum"].asInt() to property["maximum"].asInt()).isEqualTo(first to last)
+    }
+
+    /** Fills the form's templated target from "name=value" pairs, as the spec says, and follows it. */
+    @When("an agent fills the GET form {string} at {string} of the bed {string} with {string}")
+    fun anAgentFillsTheGetForm(form: String, from: String, bed: String, values: String) {
+        aClientAsksFor("/focus/$from", bed, "application/hal+json")
+        val target = json["_forms"][form]["_links"]["target"]
+        assertThat(target["templated"].asBoolean()).isTrue()
+        val variables = values.split(" ").associate { it.substringBefore("=") to it.substringAfter("=") }
+        aClientAsksForTheAddress(expand(target["href"].asText(), variables), "application/hal+json")
+    }
+
+    @Then("the agent stands on {string}")
+    fun theAgentStandsOn(label: String) {
+        assertThat(json["focus"].asText()).isEqualTo(label)
+    }
+
+    /** The gardener's taps on the page against the agent's links plus every place its GET forms lead to. */
+    @Then("at {string} of the bed {string} a gardener and an agent can reach the same places")
+    fun theSamePlacesBothWays(focus: String, bed: String) {
+        val bedAddress = "/beds/${world.bedId(bed)}"
+        val address = "$bedAddress/focus/$focus"
+        val html = Jsoup.parse(ask(address, "text/html").body())
+        val agent = jacksonObjectMapper().readTree(ask(address, "application/hal+json").body())
+        val taps = html.select("#view [hx-get]").map { place(it.attr("hx-get"), bedAddress) }.toSet()
+        val links = agent["_links"].map { place(it["href"].asText(), bedAddress) }
+        val reachable = (links + agent["_forms"].flatMap { expandAll(it) }.map { place(it, bedAddress) }).toSet()
+        assertThat(reachable.sorted()).isEqualTo(taps.sorted())
+    }
+
+    /** The care the agent can post (navigation forms are GET). */
+    private fun careForms(agent: JsonNode) = agent["_forms"].filter { it["method"].asText() == "POST" }
+
+    /** Every address a bounded GET form can lead to: each field over its enum or its minimum to maximum. */
+    private fun expandAll(form: JsonNode): List<String> {
+        val target = form["_links"]["target"]
+        val navigable = form["method"].asText() == "GET" && target.path("templated").asBoolean()
+        val choices = form["schema"]["properties"].fields().asSequence().map { (name, property) ->
+            name to when {
+                property.has("enum") -> property["enum"].map { it.asText() }
+                property.has("minimum") && property.has("maximum") ->
+                    (property["minimum"].asInt()..property["maximum"].asInt()).map { it.toString() }
+                else -> null // unbounded, such as how many recent events: not a place
+            }
+        }.toList()
+        if (!navigable || choices.any { it.second == null }) return emptyList()
+        return choices.fold(listOf(emptyMap<String, String>())) { sets, (name, values) ->
+            sets.flatMap { set -> values!!.map { set + (name to it) } }
+        }.map { expand(target["href"].asText(), it) }
+    }
+
+    /** RFC 6570 simple string expansion, which is all these templates use. */
+    private fun expand(template: String, variables: Map<String, String>): String =
+        Regex("\\{(\\w+)}").replace(template) { variables[it.groupValues[1]].orEmpty() }
+
+    /** One spelling per place: the bed is its whole-bed focus, and page-only journal state is dropped. */
+    private fun place(href: String, bedAddress: String): String = href
+        .let { if (it == bedAddress) "$bedAddress/focus/bed" else it }
+        .replace(Regex("[?&]size=[^&]*"), "").replace(Regex("[?&]by=cell(?=&|$)"), "")
+        .replace("journal&", "journal?")
 
     private fun ask(path: String, accept: String): HttpResponse<String> =
         page.send(HttpRequest.newBuilder(page.uri(path)).header("Accept", accept).GET())

@@ -129,8 +129,8 @@ object ZoomSheet {
     private fun FlowContent.careActions(resource: FocusResource) {
         div {
             classes = setOf("care-actions")
-            resource.forms.values.forEach { careForm ->
-                val postTo = careForm.links.getValue("target").getValue("href")
+            resource.forms.values.filter { it.isCare }.forEach { careForm ->
+                val postTo = careForm.target
                 val action = postTo.substringAfterLast("/")
                 val properties = careForm.schema.get("properties")
                 val fields = careForm.schema.get("required").map { it.asText() }.filter { it !in filledByThePage }

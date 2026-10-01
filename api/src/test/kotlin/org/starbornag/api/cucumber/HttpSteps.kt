@@ -155,11 +155,15 @@ class HttpSteps(private val world: GardenWorld) {
         } + mapOf("location" to (location ?: formLocation))
         val requestBody = HttpRequest.BodyPublishers.ofString(json.writeValueAsString(payload))
         send(
-            HttpRequest.newBuilder(uri(theForm["_links"]["target"]["href"].asText()))
+            HttpRequest.newBuilder(uri(filled(theForm["_links"]["target"]["href"].asText(), payload)))
                 .header("Content-Type", theForm["contentType"].asText())
                 .method(theForm["method"].asText(), requestBody)
         )
     }
+
+    /** A templated target filled from the form's own field values (RFC 6570 simple expansion). */
+    private fun filled(template: String, values: Map<String, Any?>): String =
+        Regex("\\{(\\w+)}").replace(template) { values[it.groupValues[1]]?.toString().orEmpty() }
 
     private fun JsonNode.exampleValue(): Any =
         when {

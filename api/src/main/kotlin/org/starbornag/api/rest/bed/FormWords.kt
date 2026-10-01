@@ -20,7 +20,7 @@ object FormWords {
     )
 
     private val fields = mapOf(
-        "bedId" to ("Bed" to "The bed, fixed by the address the form came from"),
+        "bedId" to ("Bed" to "The bed, fixed by where the form came from"),
         "location" to ("Cells" to LOCATION_DESCRIPTION),
         "started" to (
             "When" to "When the care happened, as an ISO 8601 date and time; left out, the moment it arrives"

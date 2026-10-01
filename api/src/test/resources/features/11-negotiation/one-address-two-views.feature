@@ -86,9 +86,9 @@ Feature: One address, two views: the page for people, HAL Schema Forms for agent
   Scenario: Agents learn how to ask for more or fewer recent events from a form, not from documentation
     When a client asks for "Mars:/focus/row/A" accepting "application/hal+json"
     Then the answer offers these GET forms:
-      | form       | target                    | fields     |
-      | go-to-cell | /focus/cell/{row}{column} | row column |
-      | refresh    | /focus/row/A{?recent}     | recent     |
+      | form       | target                                    | fields           |
+      | go-to-cell | /beds/{bedId}/focus/cell/{row}{column}    | bedId row column |
+      | refresh    | /beds/{bedId}/focus/row/A{?recent}        | bedId recent     |
     And the form "refresh" lets "recent" be at least 0
     When an agent fills the GET form "refresh" at "row/A" of the bed "Mars" with "recent=1"
     Then 1 recent events are embedded

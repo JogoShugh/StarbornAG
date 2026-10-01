@@ -93,7 +93,8 @@ data class FocusResource(
                 },
                 links = links,
                 forms = HalSchemaForms.forCells(
-                    bed, cells.map { it.state }, focus.spokenLocation(rows, columns), "$base/focus/${focus.path}"
+                    bed, cells.map { it.state }, focus.spokenLocation(rows, columns),
+                    "/beds/{bedId}/focus/${focus.path}"
                 ) + HalSchemaForms.goTo(bed.id, focus, rows, columns),
                 embedded = mapOf("recent" to recentCommands(positions, cells, recent))
             )

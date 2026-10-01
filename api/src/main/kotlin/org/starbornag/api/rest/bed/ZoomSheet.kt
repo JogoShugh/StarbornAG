@@ -130,7 +130,7 @@ object ZoomSheet {
         div {
             classes = setOf("care-actions")
             resource.forms.values.filter { it.isCare }.forEach { careForm ->
-                val postTo = careForm.target
+                val postTo = careForm.resolvedTarget
                 val action = postTo.substringAfterLast("/")
                 val properties = careForm.schema.get("properties")
                 val fields = careForm.schema.get("required").map { it.asText() }.filter { it !in filledByThePage }

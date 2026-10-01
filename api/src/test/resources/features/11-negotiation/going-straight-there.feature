@@ -15,11 +15,11 @@ Feature: Going straight to a row, column or cell with GET forms
   Scenario: The whole bed offers a GET form for each way in, bounded by the bed's size
     When a client asks for "/focus/bed" of the bed "Mars" accepting "application/hal+json"
     Then the answer offers these GET forms:
-      | form         | target                    | fields     |
-      | go-to-row    | /focus/row/{row}          | row        |
-      | go-to-column | /focus/column/{column}    | column     |
-      | go-to-cell   | /focus/cell/{row}{column} | row column |
-      | refresh      | /focus/bed{?recent}       | recent     |
+      | form         | target                                 | fields           |
+      | go-to-row    | /beds/{bedId}/focus/row/{row}          | bedId row        |
+      | go-to-column | /beds/{bedId}/focus/column/{column}    | bedId column     |
+      | go-to-cell   | /beds/{bedId}/focus/cell/{row}{column} | bedId row column |
+      | refresh      | /beds/{bedId}/focus/bed{?recent}       | bedId recent     |
     And the form "go-to-row" lets "row" be one of "A B C D"
     And the form "go-to-column" lets "column" run from 1 to 8
     And the form "go-to-cell" lets "row" be one of "A B C D"

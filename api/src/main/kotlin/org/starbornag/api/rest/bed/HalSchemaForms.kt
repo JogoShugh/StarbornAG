@@ -38,6 +38,17 @@ data class HalForm(
 
     @get:JsonIgnore
     val isCare: Boolean get() = method == "POST"
+
+    /**
+     * The target with every variable the form fixes itself (const, else default) filled in: the concrete
+     * address a page posts to. Variables the form leaves open stay as they are.
+     */
+    @get:JsonIgnore
+    val resolvedTarget: String
+        get() = Regex("\\{(\\w+)}").replace(target) { match ->
+            val field = schema.path("properties").path(match.groupValues[1])
+            (field.get("const") ?: field.get("default"))?.asText() ?: match.value
+        }
 }
 
 /** Builds a bed's `_forms`: one form per care action that is possible right now. */
@@ -81,9 +92,9 @@ object HalSchemaForms {
                 schema.enumerate("plantCultivar", possible.harvestableCultivars)
             }
             if (location != null) (schema.with("properties").get("location") as ObjectNode)
-                .put("const", location).put("default", location)
+                .put("const", location).put("default", location).put("readOnly", true)
             spec.id to HalForm(
-                links = mapOf("target" to mapOf("href" to "$targetBase/${spec.path}")),
+                links = mapOf("target" to target("$targetBase/${spec.path}")),
                 method = "POST",
                 contentType = MediaType.APPLICATION_JSON_VALUE,
                 schema = schema
@@ -99,24 +110,25 @@ object HalSchemaForms {
      * also offers "refresh", which reads it again with as many recent commands as the agent asks for.
      */
     fun goTo(bedId: UUID, focus: Focus, rows: Int, columns: Int): Map<String, HalForm> {
-        val base = "/beds/$bedId/focus"
+        val base = "/beds/{bedId}/focus"
+        val bed = "bedId" to FormFields.bed(bedId)
         val letters = (1..rows).map { rowLetter(it) }
         val cellRows = if (focus is Focus.OnRow) listOf(rowLetter(focus.row)) else letters
         val cellColumns = if (focus is Focus.OnColumn) focus.column..focus.column else 1..columns
         val cell = "go-to-cell" to goForm(
-            "$base/cell/{row}{column}", "Go to a cell",
-            "row" to letterField(cellRows), "column" to numberField(cellColumns)
+            "$base/cell/{row}{column}", "Go to a cell", bed,
+            "row" to FormFields.letters(cellRows), "column" to FormFields.numbers(cellColumns)
         )
         val refresh = "refresh" to goForm(
-            "$base/${focus.path}{?recent}", "Refresh",
+            "$base/${focus.path}{?recent}", "Refresh", bed,
             "recent" to JsonNodeFactory.instance.objectNode().put("type", "integer").put("minimum", 0)
                 .put("title", "Recent").put("description", "How many recent commands to embed; left out, 10")
-        ).also { form -> form.schema.remove("required") }
+        ).also { form -> form.schema.putArray("required").add("bedId") }
         return when (focus) {
             Focus.OnBed -> mapOf(
-                "go-to-row" to goForm("$base/row/{row}", "Go to a row", "row" to letterField(letters)),
+                "go-to-row" to goForm("$base/row/{row}", "Go to a row", bed, "row" to FormFields.letters(letters)),
                 "go-to-column" to goForm(
-                    "$base/column/{column}", "Go to a column", "column" to numberField(1..columns)
+                    "$base/column/{column}", "Go to a column", bed, "column" to FormFields.numbers(1..columns)
                 ),
                 cell
             )
@@ -124,6 +136,10 @@ object HalSchemaForms {
             is Focus.OnCell -> emptyMap()
         } + refresh
     }
+
+    /** A form's target link; a URI template (one with variables) is marked templated, as HAL requires. */
+    private fun target(href: String): Map<String, Any> =
+        if (href.contains("{")) mapOf("href" to href, "templated" to true) else mapOf("href" to href)
 
     private fun goForm(target: String, title: String, vararg fields: Pair<String, ObjectNode>): HalForm {
         val schema = JsonNodeFactory.instance.objectNode()
@@ -133,34 +149,12 @@ object HalSchemaForms {
         fields.forEach { (name, field) -> properties.set<ObjectNode>(name, field) }
         schema.putArray("required").apply { fields.forEach { add(it.first) } }
         return HalForm(
-            links = mapOf("target" to mapOf("href" to target, "templated" to true)),
+            links = mapOf("target" to target(target)),
             method = "GET",
             contentType = null,
             schema = schema
         )
     }
-
-    /** A bed's size: rows and columns are required, a raised bed's height is not. */
-    private fun dimensionsSchema(): ObjectNode {
-        val dimensions = JsonNodeFactory.instance.objectNode().put("type", "object")
-        val properties = dimensions.putObject("properties")
-        listOf(
-            "rows" to "How many rows of cells", "columns" to "How many columns", "height" to "How tall the bed is"
-        ).forEach { (name, description) ->
-            properties.putObject(name).put("type", "integer").put("description", description)
-        }
-        dimensions.putArray("required").add("rows").add("columns")
-        return dimensions
-    }
-
-    private fun letterField(letters: List<String>) = text().put("title", "Row").put("description", "The row's letter")
-        .also { field ->
-        field.putArray("enum").apply { letters.forEach(::add) }
-    }
-
-    private fun numberField(range: IntRange) = JsonNodeFactory.instance.objectNode()
-        .put("type", "integer").put("title", "Column").put("description", "The column's number")
-        .put("minimum", range.first).put("maximum", range.last)
 
     /**
      * The form that prepares a new bed: its name and size are the client's to choose, and so is its id
@@ -171,7 +165,7 @@ object HalSchemaForms {
         schema.remove(listOf("\$defs", "definitions"))
         val properties = schema.with("properties")
         properties.set<ObjectNode>("bedId", text().put("format", "uuid"))
-        properties.set<ObjectNode>("dimensions", dimensionsSchema())
+        properties.set<ObjectNode>("dimensions", FormFields.dimensions())
         schema.putArray("required").apply { listOf("name", "dimensions").forEach(::add) }
         FormWords.describe("prepare-bed", schema)
         return HalForm(
@@ -191,7 +185,7 @@ object HalSchemaForms {
         schema.remove(listOf("\$defs", "definitions"))
         val properties = schema.with("properties")
         properties.remove("action")
-        properties.set<ObjectNode>("bedId", text().put("format", "uuid").put("const", bed.id.toString()))
+        properties.set<ObjectNode>("bedId", FormFields.bed(bed.id))
         properties.set<ObjectNode>("started", text().put("format", "date-time"))
         properties.set<ObjectNode>("location", text().put("description", FormWords.LOCATION_DESCRIPTION))
         val required = command.primaryConstructor!!.parameters

@@ -81,7 +81,7 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         val html = Jsoup.parse(ask(address, "text/html").body())
         val agent = jacksonObjectMapper().readTree(ask(address, "application/hal+json").body())
         val buttons = html.select("#view .sheet form.care-action").map { it.attr("hx-post") }
-        val forms = careForms(agent).map { it["_links"]["target"]["href"].asText() }
+        val forms = careForms(agent).map { expand(it["_links"]["target"]["href"].asText(), fixed(it)) }
         assertThat(buttons).isEqualTo(forms)
     }
 
@@ -273,7 +273,8 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         aClientAsksFor("/focus/$from", bed, "application/hal+json")
         val target = json["_forms"][form]["_links"]["target"]
         assertThat(target["templated"].asBoolean()).isTrue()
-        val variables = values.split(" ").associate { it.substringBefore("=") to it.substringAfter("=") }
+        val given = values.split(" ").associate { it.substringBefore("=") to it.substringAfter("=") }
+        val variables = fixed(json["_forms"][form]) + given
         aClientAsksForTheAddress(expand(target["href"].asText(), variables), "application/hal+json")
     }
 
@@ -295,6 +296,44 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         assertThat(reachable.sorted()).isEqualTo(taps.sorted())
     }
 
+    @Then("the form {string} at {string} has the same target template in {string} and {string}")
+    fun theSameTargetTemplate(form: String, focus: String, bed: String, other: String) {
+        assertThat(targetOf(form, focus, bed)).isEqualTo(targetOf(form, focus, other))
+    }
+
+    @Then("the target template of the form {string} at {string} of {string} starts with {string}")
+    fun theTargetTemplateStartsWith(form: String, focus: String, bed: String, prefix: String) {
+        assertThat(targetOf(form, focus, bed).startsWith(prefix)).isTrue()
+    }
+
+    @Then("at {string} of {string} the form {string} fixes {string} to the bed's id")
+    fun theFormFixesToTheBedsId(focus: String, bed: String, form: String, field: String) =
+        theFormFixes(focus, bed, form, field, world.bedId(bed).toString())
+
+    /** Fixed the JSON Schema way: the only valid value, the value to start from, and the server's alone. */
+    @Then("at {string} of {string} the form {string} fixes {string} to {string}")
+    fun theFormFixes(focus: String, bed: String, form: String, field: String, value: String) {
+        aClientAsksFor("/focus/$focus", bed, "application/hal+json")
+        val property = json["_forms"][form]["schema"]["properties"][field]
+        val fixedAs = Triple(
+            property["const"]?.asText(), property["default"]?.asText(), property["readOnly"]?.asBoolean()
+        )
+        assertThat(fixedAs).isEqualTo(Triple(value, value, true))
+    }
+
+    private fun targetOf(form: String, focus: String, bed: String): String {
+        aClientAsksFor("/focus/$focus", bed, "application/hal+json")
+        val target = json["_forms"][form]["_links"]["target"]
+        assertThat(target["templated"]?.asBoolean()).isEqualTo(true)
+        return target["href"].asText()
+    }
+
+    /** The values the form fixes itself (const), which fill its template like any other field. */
+    private fun fixed(form: JsonNode): Map<String, String> =
+        form["schema"]["properties"].fields().asSequence()
+            .filter { (_, property) -> property.has("const") }
+            .associate { (name, property) -> name to property["const"].asText() }
+
     /** The care the agent can post (navigation forms are GET). */
     private fun careForms(agent: JsonNode) = agent["_forms"].filter { it["method"].asText() == "POST" }
 
@@ -304,6 +343,7 @@ class NegotiationSteps(private val world: GardenWorld, private val page: PageSte
         val navigable = form["method"].asText() == "GET" && target.path("templated").asBoolean()
         val choices = form["schema"]["properties"].fields().asSequence().map { (name, property) ->
             name to when {
+                property.has("const") -> listOf(property["const"].asText())
                 property.has("enum") -> property["enum"].map { it.asText() }
                 property.has("minimum") && property.has("maximum") ->
                     (property["minimum"].asInt()..property["maximum"].asInt()).map { it.toString() }
